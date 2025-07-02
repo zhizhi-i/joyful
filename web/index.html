@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joyful - AI Art Generation Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="public/images/background/title.png">
+    <link rel="shortcut icon" type="image/png" href="public/images/background/title.png">
+    <link rel="apple-touch-icon" href="public/images/background/title.png">
+    
+    <link rel="stylesheet" href="styles.css?v=5.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="homepage">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 80px;">
+            <!-- Logo Area -->
+            <div class="nav-logo" style="display: flex !important; align-items: center !important; flex: none !important;">
+                <img src="public/images/background/logo.png" alt="Joyful" class="logo-img" style="width: 60px !important; height: 60px !important; display: block !important; object-fit: contain;">
+            </div>
+            
+            <!-- Navigation Menu -->
+            <div class="nav-menu" style="display: flex !important; align-items: center !important; gap: 12px !important; margin-left: auto !important; flex: none !important;">
+                <a href="#gallery" class="nav-link gallery-link">
+                    <i class="fas fa-images"></i>
+                    <span>Gallery</span>
+                </a>
+                <a href="generator.html" class="nav-link">
+                    <i class="fas fa-palette"></i>
+                    <span>Create</span>
+                </a>
+                <button class="nav-link login-btn" id="loginBtn">
+                    <i class="fas fa-user"></i>
+                    <span>Login</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-homepage">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <div class="hero-content">
+                    <div class="hero-title">
+                        <img src="public/images/background/title.png" alt="Joyful" class="title-img">
+                        <h1 class="title-text">Joyful</h1>
+                    </div>
+                    <p class="hero-subtitle">Create Limitless Artistic Worlds with AI</p>
+                    <p class="hero-description">Transform your text descriptions into stunning artworks using advanced artificial intelligence technology</p>
+                    <div class="hero-actions">
+                        <a href="generator.html" class="cta-button primary">
+                            <i class="fas fa-magic"></i>
+                            Start Creating
+                        </a>
+                        <a href="#gallery" class="cta-button secondary">
+                            <i class="fas fa-eye"></i>
+                            View Gallery
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="carousel-container">
+                        <div class="carousel-wrapper">
+                            <div class="carousel-slide active">
+                                <img src="public/images/home/1.png" alt="AI Artwork 1" loading="lazy">
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="public/images/home/2.png" alt="AI Artwork 2" loading="lazy">
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="public/images/home/3.png" alt="AI Artwork 3" loading="lazy">
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="public/images/home/4.png" alt="AI Artwork 4" loading="lazy">
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="public/images/home/5.png" alt="AI Artwork 5" loading="lazy">
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="public/images/home/6.png" alt="AI Artwork 6" loading="lazy">
+                            </div>
+                        </div>
+                        
+                        <!-- 导航按钮 -->
+                        <button class="carousel-btn carousel-prev" aria-label="Previous image">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="carousel-btn carousel-next" aria-label="Next image">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        
+                        <!-- 指示器 -->
+                        <div class="carousel-indicators">
+                            <button class="indicator active" data-slide="0"></button>
+                            <button class="indicator" data-slide="1"></button>
+                            <button class="indicator" data-slide="2"></button>
+                            <button class="indicator" data-slide="3"></button>
+                            <button class="indicator" data-slide="4"></button>
+                            <button class="indicator" data-slide="5"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery" class="gallery-section">
+            <div class="gallery-container">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-palette"></i>
+                        Featured Gallery
+                    </h2>
+                    <p class="section-subtitle">Explore the infinite possibilities of AI creation</p>
+                </div>
+                
+                <div class="gallery-grid">
+                    <div class="gallery-item large">
+                        <img src="public/images/gallery/girl.png" alt="Girl Portrait" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Girl Portrait</h3>
+                                <p>AI-generated beautiful character portrait</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item medium">
+                        <img src="public/images/gallery/city.png" alt="Future City" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Future City</h3>
+                                <p>Sci-fi style urban landscape</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item small">
+                        <img src="public/images/gallery/landscape.png" alt="Natural Scenery" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Natural Scenery</h3>
+                                <p>Beautiful natural landscape</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item medium">
+                        <img src="public/images/gallery/robot.png" alt="Mechanical Warrior" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Mechanical Warrior</h3>
+                                <p>Futuristic technology robot</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item small">
+                        <img src="public/images/gallery/old.png" alt="Vintage Style" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Vintage Style</h3>
+                                <p>Classic retro art style</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item large">
+                        <img src="public/images/gallery/cartoon.png" alt="Cartoon Illustration" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Cartoon Illustration</h3>
+                                <p>Adorable cartoon style artwork</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item medium">
+                        <img src="public/images/gallery/robot1.png" alt="Smart Robot" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Smart Robot</h3>
+                                <p>High-tech robot design</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item small">
+                        <img src="public/images/gallery/giraffe.png" alt="Animal World" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Animal World</h3>
+                                <p>Vivid animal imagery</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item medium">
+                        <img src="public/images/gallery/manhua.png" alt="Manga Style" loading="lazy">
+                        <div class="gallery-overlay">
+                            <div class="gallery-info">
+                                <h3>Manga Style</h3>
+                                <p>Japanese anime and manga art style</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Capabilities Showcase -->
+        <section class="ai-showcase-section">
+            <div class="ai-showcase-container">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-brain"></i>
+                        AI Excellence in Action
+                    </h2>
+                    <p class="section-subtitle">Experience the precision, efficiency, and creativity of our AI art generation</p>
+                </div>
+                
+                <div class="ai-showcase-grid">
+                    <div class="showcase-item">
+                        <div class="showcase-image">
+                            <img src="public/images/background/spend.png" alt="Financial Precision" loading="lazy">
+                            <div class="showcase-overlay">
+                                <div class="showcase-icon">
+                                    <i class="fas fa-crosshairs"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="showcase-content">
+                            <h3>Pixel-Perfect Precision</h3>
+                            <p>Our AI delivers extraordinary attention to detail, creating images with pinpoint accuracy that captures every nuance of your vision.</p>
+                            <div class="showcase-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    99.8% Accuracy
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="showcase-item">
+                        <div class="showcase-image">
+                            <img src="public/images/background/bear.png" alt="Natural Detail Mastery" loading="lazy">
+                            <div class="showcase-overlay">
+                                <div class="showcase-icon">
+                                    <i class="fas fa-leaf"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="showcase-content">
+                            <h3>Natural Detail Mastery</h3>
+                            <p>From fur textures to organic shapes, our AI excels at rendering lifelike details that bring characters and creatures to vivid life.</p>
+                            <div class="showcase-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-clock"></i>
+                                    &lt; 10 Seconds
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="showcase-item">
+                        <div class="showcase-image">
+                            <img src="public/images/background/outerspace.png" alt="Boundless Creativity" loading="lazy">
+                            <div class="showcase-overlay">
+                                <div class="showcase-icon">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="showcase-content">
+                            <h3>Boundless Creativity</h3>
+                            <p>Explore infinite creative possibilities with AI that understands complex concepts and transforms abstract ideas into stunning visual reality.</p>
+                            <div class="showcase-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-infinity"></i>
+                                    Unlimited Styles
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features-section">
+            <div class="features-container">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-star"></i>
+                        Core Features
+                    </h2>
+                    <p class="section-subtitle">Powerful AI art generation features that extend creativity infinitely</p>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3>Lightning Fast</h3>
+                        <p>Advanced AI algorithms generate high-quality images in seconds</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <h3>Multiple Styles</h3>
+                        <p>Support various art styles to meet different creative needs</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-crop-alt"></i>
+                        </div>
+                        <h3>Flexible Sizes</h3>
+                        <p>Multiple aspect ratio options for various use cases</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h3>Easy Download</h3>
+                        <p>One-click download of high-resolution images in multiple formats</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="public/images/background/logo.png" alt="Logo" class="footer-logo-img">
+                </div>
+                <p class="footer-text">Create limitless artistic worlds with AI</p>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Joyful AI Art Platform. All rights reserved.</p>
+            </div>
+        </div>
+          </footer>
+
+    <!-- 登录模态框 -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <button class="modal-close" id="closeLoginModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form class="auth-form" id="loginForm">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                id="loginEmail" 
+                                name="email" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="loginPassword" 
+                                name="password" 
+                                placeholder="Enter your password"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="error-message" id="loginErrorMessage" style="display: none;"></div>
+                    
+                    <button type="submit" class="auth-btn" id="loginSubmitBtn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Signing in...
+                        </span>
+                    </button>
+                </form>
+                
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="#" class="auth-link" id="showRegisterModal">Create Account</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div class="modal-overlay" id="registerModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Create Account</h2>
+                <button class="modal-close" id="closeRegisterModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form class="auth-form" id="registerForm">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                id="registerEmail" 
+                                name="email" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="registerPassword" 
+                                name="password" 
+                                placeholder="Enter your password"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="registerConfirmPassword" 
+                                name="confirmPassword" 
+                                placeholder="Confirm your password"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="error-message" id="registerErrorMessage" style="display: none;"></div>
+                    
+                    <button type="submit" class="auth-btn" id="registerSubmitBtn">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Creating account...
+                        </span>
+                    </button>
+                </form>
+                
+                <!-- 网站介绍 -->
+                <div class="welcome-info">
+                    <div class="welcome-header">
+                        <h3>Welcome to Our Platform! 🚀</h3>
+                    </div>
+                    <div class="welcome-content">
+                        <p>After registration, explore our powerful <span class="highlight-blue">AI Art Generator</span> to create stunning digital artworks. Each user can enjoy <span class="highlight-green">5 free image generations</span> with our advanced AI tools. Start your creative journey now!</p>
+                    </div>
+                </div>
+                
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" class="auth-link" id="showLoginModal">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="homepage.js"></script>
+</body>
+</html> 

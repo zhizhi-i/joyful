@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text-to-Image Generator - Joyful</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="public/images/background/title.png">
+    <link rel="shortcut icon" type="image/png" href="public/images/background/title.png">
+    <link rel="apple-touch-icon" href="public/images/background/title.png">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="generator-page">
+    <!-- Top Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 80px;">
+            <!-- Logo Area -->
+            <div class="nav-logo" style="display: flex !important; align-items: center !important; flex: none !important;">
+                <img src="public/images/background/logo.png" alt="Joyful" class="logo-img" style="width: 60px !important; height: 60px !important; display: block !important; object-fit: contain;">
+            </div>
+            
+            <!-- Navigation Menu -->
+            <div class="nav-menu" style="display: flex !important; align-items: center !important; gap: 12px !important; margin-left: auto !important; flex: none !important;">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <button class="nav-link login-btn" id="loginBtn">
+                    <i class="fas fa-user"></i>
+                    <span>Login</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="generator-container">
+        <!-- Main Content -->
+        <main class="generator-main-content">
+            <div class="generator-content-wrapper">
+                <!-- Input Section -->
+                <div class="generator-input-section">
+                    
+                    <div class="prompt-container">
+                        <textarea 
+                            id="prompt-input" 
+                            placeholder="Describe what you want to create..."
+                            rows="4"
+                        ></textarea>
+                        
+                        <div class="input-tools">
+                            <span class="char-count">0/500</span>
+                        </div>
+                    </div>
+
+                    <!-- Image Count Selection -->
+                    <div class="image-count-section">
+                        <h3>Image Count</h3>
+                        <select id="image-count" class="count-select">
+                            <option value="1" selected>1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+
+                    <!-- Aspect Ratio Selection -->
+                    <div class="aspect-ratio-section">
+                        <h3>Aspect Ratio</h3>
+                        <div class="ratio-grid">
+                            <button class="ratio-btn active" data-ratio="1:1">
+                                <div class="ratio-icon square"></div>
+                                <span>1:1</span>
+                            </button>
+                            <button class="ratio-btn" data-ratio="16:9">
+                                <div class="ratio-icon wide"></div>
+                                <span>16:9</span>
+                            </button>
+                            <button class="ratio-btn" data-ratio="9:16">
+                                <div class="ratio-icon tall"></div>
+                                <span>9:16</span>
+                            </button>
+                            <button class="ratio-btn" data-ratio="4:3">
+                                <div class="ratio-icon standard"></div>
+                                <span>4:3</span>
+                            </button>
+                            <button class="ratio-btn" data-ratio="3:4">
+                                <div class="ratio-icon portrait"></div>
+                                <span>3:4</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button class="generate-btn" id="generate-btn">
+                        <i class="fas fa-magic btn-icon"></i>
+                        <span class="btn-text">Generate Images</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel - Preview Area -->
+        <div class="generator-preview-panel">
+            
+            <div class="preview-container">
+                <!-- Current Generation Area -->
+                <div class="current-generation">
+                    <!-- Progress Display -->
+                    <div class="progress-overlay" id="progress-overlay" style="display: none;">
+                        <div class="progress-content">
+                            <div class="progress-spinner"></div>
+                            <div class="progress-info">
+                                <span class="progress-text">Generating...</span>
+                                <span class="progress-percentage">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-placeholder" id="preview-area">
+                        <div class="placeholder-content">
+                            <i class="fas fa-image"></i>
+                            <h3>Start creating now</h3>
+                            <p>Enter your prompt on the left to begin creating</p>
+                        </div>
+                    </div>
+                    
+                    <div class="current-images" id="current-images" style="display: none;">
+                        <!-- Current generated images will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Welcome Back</h2>
+                <button class="modal-close" id="closeLoginModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form class="auth-form" id="loginForm">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                id="loginEmail" 
+                                name="email" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="loginPassword" 
+                                name="password" 
+                                placeholder="Enter your password"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="error-message" id="loginErrorMessage" style="display: none;"></div>
+                    
+                    <button type="submit" class="auth-btn" id="loginSubmitBtn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Signing in...
+                        </span>
+                    </button>
+                </form>
+                
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="#" class="auth-link" id="showRegisterModal">Create Account</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div class="modal-overlay" id="registerModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Create Account</h2>
+                <button class="modal-close" id="closeRegisterModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form class="auth-form" id="registerForm">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input 
+                                type="email" 
+                                id="registerEmail" 
+                                name="email" 
+                                placeholder="Enter your email"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="registerPassword" 
+                                name="password" 
+                                placeholder="Enter your password"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="registerConfirmPassword" 
+                                name="confirmPassword" 
+                                placeholder="Confirm your password"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="error-message" id="registerErrorMessage" style="display: none;"></div>
+                    
+                    <button type="submit" class="auth-btn" id="registerSubmitBtn">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Creating account...
+                        </span>
+                    </button>
+                </form>
+                
+                <!-- 网站介绍 -->
+                <div class="welcome-info">
+                    <div class="welcome-header">
+                        <h3>Welcome to Our Platform! 🚀</h3>
+                    </div>
+                    <div class="welcome-content">
+                        <p>After registration, explore our powerful <span class="highlight-blue">AI Art Generator</span> to create stunning digital artworks. Each user can enjoy <span class="highlight-green">5 free image generations</span> with our advanced AI tools. Start your creative journey now!</p>
+                    </div>
+                </div>
+                
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" class="auth-link" id="showLoginModal">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+<script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

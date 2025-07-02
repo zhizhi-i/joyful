@@ -1,0 +1,29 @@
+{
+  "name": "ai-text-to-image-frontend",
+  "version": "2.0.0",
+  "description": "AI Text-to-Image Frontend - Docker Ready Static Web Application",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000 || python -m http.server 3000",
+    "start": "python3 -m http.server 8080 || python -m http.server 8080",
+    "serve": "npx http-server -p 3000 -c-1",
+    "docker:build": "docker build -t ai-text-to-image-frontend .",
+    "docker:run": "docker run -p 8080:80 -e BACKEND_API_URL=http://localhost:81/api ai-text-to-image-frontend",
+    "docker:run:prod": "docker run -d -p 8080:80 --name ai-frontend -e BACKEND_API_URL=http://localhost:81/api ai-text-to-image-frontend",
+    "docker:stop": "docker stop ai-frontend && docker rm ai-frontend",
+    "docker:clean": "docker rmi ai-text-to-image-frontend"
+  },
+  "keywords": [
+    "ai",
+    "text-to-image",
+    "frontend",
+    "docker",
+    "nginx",
+    "javascript"
+  ],
+  "author": "AI Text-to-Image Project",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
