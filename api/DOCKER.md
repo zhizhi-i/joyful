@@ -1,261 +1,264 @@
-# AI Text-to-Image Backend API - Docker 部署
+# Docker 部署指南
 
-这是AI文字作画项目的后端API Docker镜像构建和部署说明。
+本文档提供了使用 Docker 部署 Joyful AI 图像生成服务的详细步骤。
 
-## 🚀 快速开始
+## 1. 单独部署后端服务
 
-### 1. 环境变量配置
+### 1.1 构建镜像
 
-复制环境变量示例文件：
 ```bash
-cp env.example .env
+# 进入api目录
+cd api
+
+# 构建Docker镜像
+docker build -t joyful-backend:latest .
 ```
 
-编辑 `.env` 文件，设置必要的配置：
-```bash
-# 必须设置的变量
-DASHSCOPE_API_KEY=your-dashscope-api-key-here
-JWT_SECRET_KEY=your-jwt-secret-key-here
+### 1.2 运行容器
 
-# 可选配置
-MYSQL_PASSWORD=your-secure-password
-API_PORT=81  # 如果需要修改端口，记得同时修改前端的BACKEND_API_URL
+基础运行命令：
+```bash
+docker run -d \
+  --name joyful-backend \
+  -p 81:81 \
+  joyful-backend:latest
 ```
 
-### 2. 构建Docker镜像
-
+完整运行命令（推荐）：
 ```bash
-npm run docker:build
-# 或者直接使用
-docker build -t ai-text-to-image-backend .
+docker run -d \
+  --name joyful-backend \
+  -p 81:81 \
+  -e MYSQL_HOST=你的MySQL主机地址 \
+  -e MYSQL_PORT=3306 \
+  -e MYSQL_DATABASE=joyful \
+  -e MYSQL_USER=你的MySQL用户名 \
+  -e MYSQL_PASSWORD=你的MySQL密码 \
+  -e DASHSCOPE_API_KEY=你的阿里云API密钥 \
+  -e JWT_SECRET_KEY=你的JWT密钥 \
+  -e JWT_EXPIRES_DAYS=30 \
+  -e LOG_LEVEL=INFO \
+  joyful-backend:latest
 ```
 
-### 3. 运行容器
+### 1.3 容器管理命令
 
 ```bash
-# 开发模式运行（使用默认端口81）
-npm run docker:run:dev
-
-# 生产模式运行（使用默认端口81）
-npm run docker:run:prod
-
-# 自定义端口运行
-docker run -p 8081:8081 \
-  -e API_PORT=8081 \
-  -e DASHSCOPE_API_KEY=your-api-key \
-  -e MYSQL_HOST=your-mysql-host \
-  ai-text-to-image-backend
-
-# 注意：如果修改了API端口，前端的BACKEND_API_URL也需要相应修改
-```
-
-### 4. 使用 Docker Compose（推荐）
-
-一键启动完整服务（包含数据库）：
-
-```bash
-# 使用默认端口启动所有服务
-docker-compose up -d
-
-# 使用自定义端口启动
-API_PORT=8081 docker-compose up -d
-
-# 查看日志
-docker-compose logs -f backend
-
-# 停止所有服务
-docker-compose down
-```
-
-## 🔧 环境变量配置
-
-### 必需变量
-
-| 变量名 | 说明 | 示例值 |
-|--------|------|--------|
-| `DASHSCOPE_API_KEY` | 阿里云通义万相API密钥 | `sk-xxx...` |
-
-### API配置
-
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `API_HOST` | `0.0.0.0` | API监听地址 |
-| `API_PORT` | `81` | API端口（修改时需同步修改前端配置） |
-| `DEBUG` | `False` | 调试模式 |
-| `LOG_LEVEL` | `INFO` | 日志级别 |
-
-### 数据库配置
-
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `MYSQL_HOST` | `mysql` | MySQL主机地址 |
-| `MYSQL_PORT` | `3306` | MySQL端口 |
-| `MYSQL_DATABASE` | `joyful` | 数据库名 |
-| `MYSQL_USER` | `joyful` | 数据库用户名 |
-| `MYSQL_PASSWORD` | `123456` | 数据库密码 |
-
-### JWT配置
-
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `JWT_SECRET_KEY` | 自动生成 | JWT签名密钥 |
-| `JWT_EXPIRES_DAYS` | `30` | Token过期天数 |
-
-## 🗄️ 数据库
-
-### 默认账号
-
-初始化时会自动创建以下账号：
-
-| 角色 | 邮箱 | 密码 | 权限 |
-|------|------|------|------|
-| 管理员 | `admin@example.com` | `admin123` | 无限制使用 |
-| 测试用户 | `user@example.com` | `user123` | 5次试用 |
-
-### 数据库管理
-
-```bash
-# 连接到MySQL容器
-docker exec -it ai-mysql mysql -u root -p
-
-# 查看用户表
-USE joyful;
-SELECT * FROM users;
-
-# 手动创建管理员账号
-INSERT INTO users (email, password_hash, role, demo_count) 
-VALUES ('your-admin@email.com', SHA2('your-password', 256), 'admin', 999999);
-```
-
-## 📋 API接口
-
-### 健康检查
-```bash
-# 使用默认端口
-curl http://localhost:81/api/health
-
-# 使用自定义端口
-curl http://localhost:8081/api/health
-```
-
-### 用户注册
-```bash
-# 根据实际端口修改
-curl -X POST http://localhost:81/api/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
-```
-
-### 用户登录
-```bash
-# 根据实际端口修改
-curl -X POST http://localhost:81/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
-```
-
-### 生成图片
-```bash
-# 根据实际端口修改
-curl -X POST http://localhost:81/api/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"prompt":"beautiful landscape","ratio":"16:9","count":1}'
-```
-
-## 🐳 Docker 脚本
-
-```bash
-# 构建镜像
-npm run docker:build
-
-# 运行（开发模式）
-npm run docker:run:dev
-
-# 运行（生产模式）
-npm run docker:run:prod
-
-# 自定义端口运行
-docker run -d -p 8081:8081 \
-  -e API_PORT=8081 \
-  -e DASHSCOPE_API_KEY=your-api-key \
-  ai-text-to-image-backend
-
-# 查看日志
-npm run docker:logs
-
-# 进入容器
-npm run docker:shell
+# 查看容器日志
+docker logs -f joyful-backend
 
 # 停止容器
-npm run docker:stop
+docker stop joyful-backend
 
-# 清理容器
-npm run docker:clean
+# 启动容器
+docker start joyful-backend
+
+# 重启容器
+docker restart joyful-backend
+
+# 删除容器
+docker rm -f joyful-backend
+
+# 查看容器状态
+docker ps -a | grep joyful-backend
 ```
 
-## 🔍 故障排除
+## 2. 使用Docker网络（推荐）
 
-### 端口冲突
+### 2.1 创建网络
 
-如果默认的81端口被占用，您可以：
+```bash
+# 创建Docker网络
+docker network create joyful-network
+```
 
-1. 修改端口映射：
-   ```bash
-   # 方法1：直接指定新端口
-   docker run -p 8081:81 ai-text-to-image-backend
+### 2.2 部署MySQL
 
-   # 方法2：使用环境变量修改内部端口（推荐）
-   docker run -p 8081:8081 -e API_PORT=8081 ai-text-to-image-backend
-   ```
+```bash
+# 运行MySQL容器
+docker run -d \
+  --name joyful-mysql \
+  --network joyful-network \
+  -e MYSQL_ROOT_PASSWORD=你的root密码 \
+  -e MYSQL_DATABASE=joyful \
+  -e MYSQL_USER=joyful \
+  -e MYSQL_PASSWORD=你的用户密码 \
+  -p 3306:3306 \
+  -v mysql_data:/var/lib/mysql \
+  mysql:8.0
+```
 
-2. 使用环境变量：
-   ```bash
-   # 在 .env 文件中修改
-   API_PORT=8081
+### 2.3 部署后端服务
 
-   # 或者在启动时指定
-   API_PORT=8081 docker-compose up -d
-   ```
+```bash
+# 运行后端服务（连接到同一网络）
+docker run -d \
+  --name joyful-backend \
+  --network joyful-network \
+  -p 81:81 \
+  -e MYSQL_HOST=joyful-mysql \
+  -e MYSQL_PORT=3306 \
+  -e MYSQL_DATABASE=joyful \
+  -e MYSQL_USER=joyful \
+  -e MYSQL_PASSWORD=你的用户密码 \
+  -e DASHSCOPE_API_KEY=你的阿里云API密钥 \
+  -e JWT_SECRET_KEY=你的JWT密钥 \
+  joyful-backend:latest
+```
 
-3. 记得同时修改前端配置：
-   ```bash
-   # 前端容器启动时指定新的后端地址
-   docker run -e BACKEND_API_URL=http://localhost:8081/api frontend-image
-   ```
+## 3. 环境变量说明
 
-### 数据库连接失败
+| 环境变量 | 说明 | 默认值 | 是否必需 |
+|---------|------|--------|----------|
+| MYSQL_HOST | MySQL主机地址 | mysql | 是 |
+| MYSQL_PORT | MySQL端口 | 3306 | 否 |
+| MYSQL_DATABASE | 数据库名称 | joyful | 是 |
+| MYSQL_USER | 数据库用户名 | root | 是 |
+| MYSQL_PASSWORD | 数据库密码 | password | 是 |
+| DASHSCOPE_API_KEY | 阿里云API密钥 | - | 是 |
+| JWT_SECRET_KEY | JWT加密密钥 | - | 是 |
+| JWT_EXPIRES_DAYS | JWT过期天数 | 30 | 否 |
+| API_HOST | API监听地址 | 0.0.0.0 | 否 |
+| API_PORT | API监听端口 | 81 | 否 |
+| DEBUG | 调试模式 | False | 否 |
+| LOG_LEVEL | 日志级别 | INFO | 否 |
 
-1. 检查MySQL容器是否运行：
-   ```bash
-   docker ps | grep mysql
-   ```
+## 4. 常见问题
 
-2. 检查网络连接：
-   ```bash
-   docker network ls
-   docker network inspect ai-network
-   ```
+### 4.1 数据库连接问题
 
-### API密钥配置
+如果遇到数据库连接错误，请检查：
 
-1. 确保设置了 `DASHSCOPE_API_KEY`
-2. 检查API密钥是否有效
-3. 查看容器日志：
-   ```bash
-   npm run docker:logs
-   ```
+1. MySQL容器是否正常运行
+```bash
+docker ps | grep joyful-mysql
+```
 
-## 📝 镜像特性
+2. 网络连接是否正常
+```bash
+# 进入后端容器测试连接
+docker exec -it joyful-backend sh
+ping joyful-mysql
+```
 
-- ✅ 基于 Python 3.11 Alpine（轻量级）
-- ✅ 非root用户运行（安全）
-- ✅ 多层缓存优化构建
-- ✅ 健康检查支持
-- ✅ 完整的环境变量配置
-- ✅ 生产级安全配置
-- ✅ 灵活的端口配置
+3. 环境变量是否正确配置
+```bash
+docker exec joyful-backend env | grep MYSQL
+```
 
-**镜像大小**: 约 150-200MB  
-**启动时间**: 约 10-15秒  
-**内存占用**: 约 100-200MB 
+### 4.2 端口占用问题
+
+如果81端口被占用，可以映射到其他端口：
+```bash
+docker run -d \
+  --name joyful-backend \
+  -p 8081:81 \  # 将容器的81端口映射到主机的8081端口
+  ... 其他配置 ...
+  joyful-backend:latest
+```
+
+### 4.3 容器日志查看
+
+查看实时日志：
+```bash
+# 查看最新100行日志
+docker logs --tail 100 -f joyful-backend
+```
+
+### 4.4 数据持久化
+
+为了保证数据安全，建议为MySQL配置数据卷：
+```bash
+# 创建数据卷
+docker volume create mysql_data
+
+# 使用数据卷运行MySQL
+docker run -d \
+  --name joyful-mysql \
+  -v mysql_data:/var/lib/mysql \
+  ... 其他配置 ...
+  mysql:8.0
+```
+
+## 5. 生产环境建议
+
+1. **使用Docker Compose**
+   - 参考项目根目录的`docker-compose.yml`文件
+   - 更容易管理多个服务
+   - 配置更集中和清晰
+
+2. **安全建议**
+   - 不要使用默认密码
+   - 定期更新镜像和依赖
+   - 限制容器资源使用
+   - 使用非root用户运行容器
+
+3. **监控建议**
+   - 设置容器健康检查
+   - 配置日志聚合
+   - 监控容器资源使用
+
+4. **备份建议**
+   - 定期备份数据库
+   - 备份配置文件
+   - 保存镜像版本
+
+## 6. 快速部署脚本
+
+创建`deploy.sh`脚本简化部署流程：
+
+```bash
+#!/bin/bash
+
+# 设置变量
+MYSQL_ROOT_PASSWORD="your_root_password"
+MYSQL_USER="joyful"
+MYSQL_PASSWORD="your_password"
+MYSQL_DATABASE="joyful"
+DASHSCOPE_API_KEY="your_api_key"
+JWT_SECRET_KEY="your_jwt_key"
+
+# 创建网络
+docker network create joyful-network || true
+
+# 运行MySQL
+docker run -d \
+  --name joyful-mysql \
+  --network joyful-network \
+  -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
+  -e MYSQL_DATABASE=$MYSQL_DATABASE \
+  -e MYSQL_USER=$MYSQL_USER \
+  -e MYSQL_PASSWORD=$MYSQL_PASSWORD \
+  -p 3306:3306 \
+  -v mysql_data:/var/lib/mysql \
+  mysql:8.0
+
+# 等待MySQL启动
+echo "等待MySQL启动..."
+sleep 30
+
+# 运行后端服务
+docker run -d \
+  --name joyful-backend \
+  --network joyful-network \
+  -p 81:81 \
+  -e MYSQL_HOST=joyful-mysql \
+  -e MYSQL_DATABASE=$MYSQL_DATABASE \
+  -e MYSQL_USER=$MYSQL_USER \
+  -e MYSQL_PASSWORD=$MYSQL_PASSWORD \
+  -e DASHSCOPE_API_KEY=$DASHSCOPE_API_KEY \
+  -e JWT_SECRET_KEY=$JWT_SECRET_KEY \
+  joyful-backend:latest
+
+echo "部署完成！"
+echo "后端服务地址: http://localhost:81"
+```
+
+使用方法：
+```bash
+# 添加执行权限
+chmod +x deploy.sh
+
+# 执行部署
+./deploy.sh
+```

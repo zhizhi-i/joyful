@@ -11,11 +11,10 @@ chown -R nginx:nginx /var/log/nginx
 
 # 创建启动日志
 STARTUP_LOG="/var/log/nginx/startup.log"
-exec 1>"$STARTUP_LOG" 2>&1
 
-echo "[$(date)] === Frontend Container Starting ==="
-echo "[$(date)] Backend API URL: ${BACKEND_API_URL}"
-echo "[$(date)] Frontend Port: ${FRONTEND_PORT}"
+echo "[$(date)] === Frontend Container Starting ===" >> "$STARTUP_LOG"
+echo "[$(date)] Backend API URL: ${BACKEND_API_URL}" >> "$STARTUP_LOG"
+echo "[$(date)] Frontend Port: ${FRONTEND_PORT}" >> "$STARTUP_LOG"
 
 # 创建环境变量注入脚本
 cat > /usr/share/nginx/html/env-config.js << EOF
@@ -37,35 +36,31 @@ EOF
 # 在所有 HTML 文件中注入环境配置脚本
 for html_file in /usr/share/nginx/html/*.html; do
     if [ -f "$html_file" ]; then
-        echo "[$(date)] Processing $html_file..."
+        echo "[$(date)] Processing $html_file..." >> "$STARTUP_LOG"
         
         # 在 config.js 之前插入 env-config.js
         if grep -q 'config.js' "$html_file"; then
             sed -i 's|<script src="config.js"></script>|<script src="env-config.js"></script>\n    <script src="config.js"></script>|g' "$html_file"
-            echo "[$(date)] ✅ Injected env-config.js into $html_file"
+            echo "[$(date)] ✅ Injected env-config.js into $html_file" >> "$STARTUP_LOG"
         else
-            echo "[$(date)] ⚠️  Warning: config.js not found in $html_file"
+            echo "[$(date)] ⚠️  Warning: config.js not found in $html_file" >> "$STARTUP_LOG"
         fi
     fi
 done
 
 # 处理 nginx 配置中的环境变量
 if [ -n "${BACKEND_API_URL}" ]; then
-    echo "[$(date)] Configuring nginx proxy for backend: ${BACKEND_API_URL}"
+    echo "[$(date)] Configuring nginx proxy for backend: ${BACKEND_API_URL}" >> "$STARTUP_LOG"
     envsubst '${BACKEND_API_URL}' < /etc/nginx/nginx.conf > /tmp/nginx.conf
     mv /tmp/nginx.conf /etc/nginx/nginx.conf
 fi
 
-echo "[$(date)] === Environment Configuration Complete ==="
-echo "[$(date)] ✅ Frontend ready to serve on port ${FRONTEND_PORT:-80}"
+echo "[$(date)] === Environment Configuration Complete ===" >> "$STARTUP_LOG"
+echo "[$(date)] ✅ Frontend ready to serve on port ${FRONTEND_PORT:-80}" >> "$STARTUP_LOG"
 
-# 启动nginx（后台运行）
-echo "[$(date)] Starting nginx in background mode..."
-nginx -g 'daemon on;'
-
-# 持续输出最新的日志
-echo "[$(date)] Tailing nginx logs..."
-exec tail -f /var/log/nginx/error.log /var/log/nginx/access.log /var/log/nginx/api_access.log
+# 启动nginx（前台运行）
+echo "[$(date)] Starting nginx..." >> "$STARTUP_LOG"
+exec nginx -g 'daemon off;'
 
 # 执行传入的命令
 exec "$@" 

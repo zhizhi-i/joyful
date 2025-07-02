@@ -29,7 +29,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # 允许跨域请求
+
+# 配置CORS - 允许指定域名的跨域请求
+CORS(app, 
+     origins=[
+         'https://joyful.cloud',
+         'https://www.joyful.cloud', 
+         'http://localhost:3000',
+         'http://localhost:8080',
+         'http://127.0.0.1:3000',
+         'http://127.0.0.1:8080'
+     ],
+     allow_headers=[
+         'Content-Type',
+         'Authorization',
+         'Access-Control-Allow-Credentials'
+     ],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     supports_credentials=True
+)
 
 # 配置
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
