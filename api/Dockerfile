@@ -22,6 +22,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用文件
 COPY . .
 
+# 创建启动脚本
+RUN echo '#!/bin/sh\n\
+echo "🚀 启动AI Text-to-Image后端服务..."\n\
+echo "📊 运行数据库迁移..."\n\
+python docker_migrate.py\n\
+if [ $? -eq 0 ]; then\n\
+    echo "✅ 数据库迁移完成，启动API服务..."\n\
+    exec python app.py\n\
+else\n\
+    echo "❌ 数据库迁移失败，服务启动中止"\n\
+    exit 1\n\
+fi' > /app/start.sh && chmod +x /app/start.sh
+
 # 环境变量设置
 ENV PYTHONUNBUFFERED=1
 ENV API_HOST=0.0.0.0
@@ -43,4 +56,4 @@ ENV JWT_EXPIRES_DAYS=30
 EXPOSE 81
 
 # 启动应用
-CMD ["python", "app.py"] 
+CMD ["/app/start.sh"] 

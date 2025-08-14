@@ -1,0 +1,51 @@
+# Root ignore rules
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environments / secrets
+.env
+*.env
+api/.env
+web/.env
+.env.*
+venv/
+.venv/
+
+# Databases / local storage
+*.db
+*.sqlite3
+user_database.db
+
+# Logs
+*.log
+logs/
+api/api_server.log
+
+# OS / Editor
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Node
+node_modules/
+# (web/ already has its own .gitignore but keep a global safeguard)
+
+# Build / Dist
+build/
+dist/
+out/
+
+# Docker artifacts (optional, uncomment if generated locally)
+# docker-data/
+
+# Misc temp
+.tmp/
+tmp/
+*.tmp

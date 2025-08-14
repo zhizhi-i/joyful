@@ -1,0 +1,11 @@
+{
+  "version": "001_initial",
+  "name": "Initial database schema",
+  "description": "Create users and usage_logs tables with default admin user",
+  "created_at": "2025-08-12T15:27:22.320496",
+  "sql": [
+    "\n        CREATE TABLE IF NOT EXISTS users (\n            id INT AUTO_INCREMENT PRIMARY KEY,\n            email VARCHAR(255) UNIQUE NOT NULL,\n            password_hash VARCHAR(255) NOT NULL,\n            role VARCHAR(20) NOT NULL DEFAULT 'user',\n            demo_count INT NOT NULL DEFAULT 5,\n            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n            INDEX idx_email (email),\n            INDEX idx_role (role)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci\n        ",
+    "\n        CREATE TABLE IF NOT EXISTS usage_logs (\n            id INT AUTO_INCREMENT PRIMARY KEY,\n            user_id INT,\n            demo_type VARCHAR(50) NOT NULL,\n            used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n            INDEX idx_user_id (user_id),\n            INDEX idx_used_at (used_at),\n            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci\n        ",
+    "\n        INSERT INTO users (email, password_hash, role, demo_count, created_at, updated_at) \n        VALUES (\n            'admin@example.com',\n            '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',\n            'admin',\n            999999,\n            NOW(),\n            NOW()\n        ) ON DUPLICATE KEY UPDATE \n            password_hash = VALUES(password_hash),\n            role = VALUES(role),\n            demo_count = VALUES(demo_count),\n            updated_at = NOW()\n        "
+  ]
+}

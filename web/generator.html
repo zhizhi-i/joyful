@@ -31,10 +31,43 @@
                     <i class="fas fa-home"></i>
                     <span>Home</span>
                 </a>
+                
+                <!-- Login Button (visible when not logged in) -->
                 <button class="nav-link login-btn" id="loginBtn">
                     <i class="fas fa-user"></i>
                     <span>Login</span>
                 </button>
+                
+                <!-- User Dropdown (visible when logged in, replaces login button) -->
+                <div class="user-dropdown-container" id="userDropdownContainer" style="display: none;">
+                    <button class="user-dropdown-btn" id="userDropdownBtn">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="user-name" id="userName">User</span>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="subscribe.html" class="dropdown-item" data-action="subscribe">
+                            <i class="fas fa-crown"></i>
+                            <span>Subscribe</span>
+                        </a>
+                        <div class="dropdown-separator"></div>
+                        <a href="account.html" class="dropdown-item" data-action="account">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Account</span>
+                        </a>
+                        <a href="membership.html" class="dropdown-item" data-action="membership">
+                            <i class="fas fa-medal"></i>
+                            <span>Membership</span>
+                        </a>
+                        <div class="dropdown-separator"></div>
+                        <button class="dropdown-item logout-item" data-action="logout" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>

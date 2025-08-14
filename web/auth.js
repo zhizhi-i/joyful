@@ -247,6 +247,10 @@ class LoginManager {
                 // 登录成功，关闭模态框
                 ModalManager.hideAllModals();
                 
+                // 更新UI状态
+                const userInfo = AuthUtils.getUserInfo();
+                UIManager.updateNavUserStatus(true, userInfo);
+                
                 // 刷新页面或跳转
                 const currentPage = window.location.pathname.split('/').pop();
                 if (currentPage === 'index.html' || currentPage === '') {
@@ -267,11 +271,78 @@ class LoginManager {
 
 // 注册功能
 class RegisterManager {
-    static async register(email, password) {
+    static verificationCodeSent = false;
+    static countdownTimer = null;
+
+    // 发送验证码
+    static async sendVerificationCode(email) {
+        try {
+            const response = await AuthUtils.apiRequest('/send-verification-code', {
+                method: 'POST',
+                body: JSON.stringify({ email })
+            });
+
+            if (response.success) {
+                return response;
+            } else {
+                throw new Error(response.message || 'Failed to send verification code');
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // 验证邮箱验证码
+    static async verifyEmailCode(email, code) {
+        try {
+            const response = await AuthUtils.apiRequest('/verify-email-code', {
+                method: 'POST',
+                body: JSON.stringify({ email, code })
+            });
+
+            if (response.success) {
+                return response;
+            } else {
+                throw new Error(response.message || 'Invalid verification code');
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // 开始倒计时
+    static startCountdown() {
+        const sendBtn = document.getElementById('sendCodeBtn');
+        const btnText = sendBtn.querySelector('.btn-text');
+        const btnCountdown = sendBtn.querySelector('.btn-countdown');
+        
+        let countdown = 60;
+        sendBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnCountdown.style.display = 'block';
+        
+        const updateCountdown = () => {
+            btnCountdown.textContent = `${countdown}s`;
+            countdown--;
+            
+            if (countdown < 0) {
+                clearInterval(this.countdownTimer);
+                sendBtn.disabled = false;
+                btnText.style.display = 'block';
+                btnCountdown.style.display = 'none';
+                this.countdownTimer = null;
+            }
+        };
+        
+        updateCountdown();
+        this.countdownTimer = setInterval(updateCountdown, 1000);
+    }
+
+    static async register(email, password, verificationCode) {
         try {
             const response = await AuthUtils.apiRequest('/register', {
                 method: 'POST',
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, verification_code: verificationCode })
             });
 
             if (response.success) {
@@ -286,9 +357,70 @@ class RegisterManager {
         }
     }
 
+    static initSendCodeButton() {
+        const sendBtn = document.getElementById('sendCodeBtn');
+        const emailInput = document.getElementById('registerEmail');
+        
+        if (!sendBtn || !emailInput) return;
+
+        sendBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            // 验证邮箱格式
+            if (!email) {
+                AuthUtils.showError('Please enter your email address first', 'registerErrorMessage');
+                return;
+            }
+            
+            if (!email.includes('@') || !email.includes('.')) {
+                AuthUtils.showError('Please enter a valid email address', 'registerErrorMessage');
+                return;
+            }
+            
+            AuthUtils.hideError('registerErrorMessage');
+            
+            try {
+                sendBtn.disabled = true;
+                sendBtn.querySelector('.btn-text').textContent = 'Sending...';
+                
+                await this.sendVerificationCode(email);
+                this.verificationCodeSent = true;
+                this.startCountdown();
+                
+                // 显示成功消息
+                const successMsg = document.createElement('div');
+                successMsg.className = 'success-message';
+                successMsg.style.cssText = 'background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; text-align: center;';
+                successMsg.textContent = 'Verification code sent! Please check your email.';
+                
+                const errorDiv = document.getElementById('registerErrorMessage');
+                errorDiv.parentNode.insertBefore(successMsg, errorDiv);
+                
+                setTimeout(() => {
+                    if (successMsg.parentNode) {
+                        successMsg.parentNode.removeChild(successMsg);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                AuthUtils.showError(error.message || 'Failed to send verification code', 'registerErrorMessage');
+            } finally {
+                if (!this.countdownTimer) {
+                    sendBtn.disabled = false;
+                    sendBtn.querySelector('.btn-text').textContent = 'Get Code';
+                }
+            }
+        });
+    }
+
     static async handleRegisterForm() {
         const form = document.getElementById('registerForm');
         if (!form) return;
+
+        // 初始化发送验证码按钮
+        this.initSendCodeButton();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -296,9 +428,10 @@ class RegisterManager {
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            const verificationCode = document.getElementById('verificationCode').value.trim();
 
             // 基本验证
-            if (!email || !password || !confirmPassword) {
+            if (!email || !password || !confirmPassword || !verificationCode) {
                 AuthUtils.showError('Please fill in all fields', 'registerErrorMessage');
                 return;
             }
@@ -321,14 +454,30 @@ class RegisterManager {
                 return;
             }
 
+            // 验证码格式检查
+            if (!/^\d{6}$/.test(verificationCode)) {
+                AuthUtils.showError('Please enter a valid 6-digit verification code', 'registerErrorMessage');
+                return;
+            }
+
+            // 检查是否已发送验证码
+            if (!this.verificationCodeSent) {
+                AuthUtils.showError('Please send verification code first', 'registerErrorMessage');
+                return;
+            }
+
             AuthUtils.hideError('registerErrorMessage');
             AuthUtils.setButtonLoading('registerSubmitBtn', true);
 
             try {
-                await this.register(email, password);
+                await this.register(email, password, verificationCode);
                 
                 // 注册成功，关闭模态框
                 ModalManager.hideAllModals();
+                
+                // 更新UI状态
+                const userInfo = AuthUtils.getUserInfo();
+                UIManager.updateNavUserStatus(true, userInfo);
                 
                 // 刷新页面或跳转
                 const currentPage = window.location.pathname.split('/').pop();
@@ -398,36 +547,6 @@ class UserManager {
     }
 
     // 登出
-    static logout() {
-        AuthUtils.removeToken();
-        window.location.href = 'index.html';
-    }
-
-    // 更新导航栏用户信息
-    static updateNavUserInfo() {
-        const userInfo = AuthUtils.getUserInfo();
-        const loginBtn = document.querySelector('.login-btn');
-        
-        if (userInfo && loginBtn) {
-            // 更新登录按钮为用户信息
-            loginBtn.innerHTML = `
-                <i class="fas fa-user"></i>
-                <span>${userInfo.email}</span>
-                <div class="user-dropdown" style="display: none;">
-                    <a href="#" onclick="UserManager.logout()">Logout</a>
-                </div>
-            `;
-            
-            // 添加下拉菜单功能（简单实现）
-            loginBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const dropdown = loginBtn.querySelector('.user-dropdown');
-                if (dropdown) {
-                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-                }
-            });
-        }
-    }
 }
 
 // 路由保护
@@ -472,6 +591,149 @@ class RouteGuard {
     }
 }
 
+// 用户界面管理
+class UIManager {
+    // 更新导航栏用户状态
+    static updateNavUserStatus(isLoggedIn, userInfo = null) {
+        console.log('UIManager.updateNavUserStatus 被调用:');
+        console.log('isLoggedIn:', isLoggedIn);
+        console.log('userInfo:', userInfo);
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const userDropdownContainer = document.getElementById('userDropdownContainer');
+        const userName = document.getElementById('userName');
+        
+        console.log('找到的元素:');
+        console.log('loginBtn:', loginBtn);
+        console.log('userDropdownContainer:', userDropdownContainer);
+        console.log('userName:', userName);
+        
+        if (isLoggedIn && userInfo) {
+            console.log('用户已登录，隐藏登录按钮，显示用户菜单');
+            // 完全隐藏登录按钮
+            if (loginBtn) {
+                loginBtn.style.display = 'none';
+                loginBtn.style.visibility = 'hidden';
+                loginBtn.classList.add('hidden');
+                // 移除所有事件监听器
+                loginBtn.removeEventListener('click', this.originalLoginHandler);
+                loginBtn.innerHTML = ''; // 清空内容
+            }
+            
+            // 显示用户下拉菜单并设置用户名
+            if (userDropdownContainer) {
+                userDropdownContainer.style.display = 'block';
+                userDropdownContainer.style.visibility = 'visible';
+                
+                // 设置用户名（使用邮箱前缀或完整邮箱）
+                if (userName) {
+                    const displayName = userInfo.email.length > 15 
+                        ? userInfo.email.split('@')[0] 
+                        : userInfo.email;
+                    userName.textContent = displayName;
+                }
+                
+                this.initUserDropdown();
+            }
+        } else {
+            console.log('用户未登录，显示登录按钮，隐藏用户菜单');
+            // 显示登录按钮
+            if (loginBtn) {
+                loginBtn.style.display = 'flex';
+                loginBtn.style.visibility = 'visible';
+                loginBtn.classList.remove('hidden');
+                // 恢复按钮内容
+                if (!loginBtn.innerHTML.trim()) {
+                    loginBtn.innerHTML = '<i class="fas fa-user"></i> Login';
+                }
+            }
+            
+            // 隐藏用户下拉菜单
+            if (userDropdownContainer) {
+                userDropdownContainer.style.display = 'none';
+            }
+        }
+    }
+    
+    // 初始化用户下拉菜单
+    static initUserDropdown() {
+        const userDropdownBtn = document.getElementById('userDropdownBtn');
+        const userDropdownContainer = document.getElementById('userDropdownContainer');
+        const userDropdownMenu = document.getElementById('userDropdownMenu');
+        
+        if (!userDropdownBtn || !userDropdownContainer || !userDropdownMenu) return;
+        
+        // 移除之前的事件监听器（如果有）
+        const newBtn = userDropdownBtn.cloneNode(true);
+        userDropdownBtn.parentNode.replaceChild(newBtn, userDropdownBtn);
+        
+        // 点击用户按钮切换下拉菜单
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isOpen = userDropdownContainer.classList.contains('open');
+            if (isOpen) {
+                this.closeUserDropdown();
+            } else {
+                this.openUserDropdown();
+            }
+        });
+        
+        // 点击外部关闭下拉菜单
+        document.addEventListener('click', (e) => {
+            if (!userDropdownContainer.contains(e.target)) {
+                this.closeUserDropdown();
+            }
+        });
+        
+        // 处理下拉菜单项点击
+        const dropdownItems = userDropdownMenu.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const action = item.dataset.action;
+                
+                // 如果是链接元素，让它正常导航
+                if (item.tagName === 'A') {
+                    // 关闭下拉菜单，让链接正常工作
+                    this.closeUserDropdown();
+                    return;
+                }
+                
+                // 如果是按钮元素，处理特殊动作
+                e.preventDefault();
+                
+                switch (action) {
+                    case 'logout':
+                        AuthUtils.logout();
+                        window.location.reload();
+                        break;
+                    default:
+                        console.log('Unknown action:', action);
+                }
+                
+                this.closeUserDropdown();
+            });
+        });
+    }
+    
+    // 打开用户下拉菜单
+    static openUserDropdown() {
+        const userDropdownContainer = document.getElementById('userDropdownContainer');
+        if (userDropdownContainer) {
+            userDropdownContainer.classList.add('open');
+        }
+    }
+    
+    // 关闭用户下拉菜单
+    static closeUserDropdown() {
+        const userDropdownContainer = document.getElementById('userDropdownContainer');
+        if (userDropdownContainer) {
+            userDropdownContainer.classList.remove('open');
+        }
+    }
+}
+
 // 页面初始化
 document.addEventListener('DOMContentLoaded', () => {
     const currentPage = window.location.pathname.split('/').pop();
@@ -483,27 +745,47 @@ document.addEventListener('DOMContentLoaded', () => {
     LoginManager.handleLoginForm();
     RegisterManager.handleRegisterForm();
     
+    // 检查用户登录状态并更新UI
+    const isLoggedIn = AuthUtils.isLoggedIn();
+    const userInfo = AuthUtils.getUserInfo();
+    
+    console.log('页面加载时的状态检查:');
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('userInfo:', userInfo);
+    console.log('token:', AuthUtils.getToken());
+    
+    // 延迟更新UI，确保DOM完全加载
+    setTimeout(() => {
+        UIManager.updateNavUserStatus(isLoggedIn, userInfo);
+    }, 100);
+    
     switch (currentPage) {
         case 'generator.html':
             // generator页面需要登录
-            if (RouteGuard.requireAuth()) {
-                UserManager.updateNavUserInfo();
-            }
+            RouteGuard.requireAuth();
             break;
             
         case 'index.html':
         case '':
             // 首页设置路由保护
             RouteGuard.handleCreateButtons();
-            if (AuthUtils.isLoggedIn()) {
-                UserManager.updateNavUserInfo();
-            }
             break;
     }
+    
+    // Initialize dropdown and subscription button handlers
+    initializeNavigationHandlers();
 });
+
+// 初始化导航处理器
+function initializeNavigationHandlers() {
+    // 导航处理现在完全由UIManager.initUserDropdown()处理
+    // 这个函数保留用于未来可能的其他导航功能
+    console.log('Navigation handlers initialized');
+}
 
 // 导出给全局使用
 window.AuthUtils = AuthUtils;
 window.UserManager = UserManager;
 window.RouteGuard = RouteGuard;
-window.ModalManager = ModalManager; 
+window.ModalManager = ModalManager;
+window.UIManager = UIManager; 

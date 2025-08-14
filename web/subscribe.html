@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe - Joyful AI Art Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="public/images/background/title.png">
+    <link rel="shortcut icon" type="image/png" href="public/images/background/title.png">
+    <link rel="apple-touch-icon" href="public/images/background/title.png">
+    
+    <link rel="stylesheet" href="styles.css?v=5.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="subscribe-page">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 80px;">
+            <!-- Logo Area -->
+            <div class="nav-logo" style="display: flex !important; align-items: center !important; flex: none !important;">
+                <img src="public/images/background/logo.png" alt="Joyful" class="logo-img" style="width: 60px !important; height: 60px !important; display: block !important; object-fit: contain;">
+            </div>
+            
+            <!-- Back Button -->
+            <button class="back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="subscribe-main">
+        <div class="subscribe-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1><i class="fas fa-star"></i> Choose Your Plan</h1>
+                <p>Unlock the full potential of AI art generation</p>
+            </div>
+
+            <!-- Plan Selection Toggle -->
+            <div class="billing-toggle">
+                <div class="toggle-wrapper">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="billingToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">
+                        Yearly 
+                        <span class="discount-badge">Save 20%</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pricing Plans -->
+            <div class="pricing-grid">
+                <!-- Basic Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>Basic</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount" data-monthly="9" data-yearly="86">9</span>
+                            <span class="period" data-monthly="/month" data-yearly="/year">/month</span>
+                        </div>
+                        <div class="savings-badge" style="display: none;">Save $22/year</div>
+                    </div>
+                    <div class="plan-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            100 AI generations per month
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            HD quality images (1024x1024)
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Email support
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Commercial use rights
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Download in PNG/JPG
+                        </div>
+                    </div>
+                    <button class="plan-btn" data-plan="basic">Get Started</button>
+                </div>
+
+                <!-- Pro Plan (Recommended) -->
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="plan-header">
+                        <h3>Pro</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount" data-monthly="19" data-yearly="182">19</span>
+                            <span class="period" data-monthly="/month" data-yearly="/year">/month</span>
+                        </div>
+                        <div class="savings-badge" style="display: none;">Save $46/year</div>
+                    </div>
+                    <div class="plan-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            500 AI generations per month
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            4K ultra HD quality (2048x2048)
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Priority support
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Advanced AI models
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            No watermarks
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Multiple aspect ratios
+                        </div>
+                    </div>
+                    <button class="plan-btn primary" data-plan="pro">Choose Pro</button>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>Premium</h3>
+                        <div class="plan-price">
+                            <span class="currency">$</span>
+                            <span class="amount" data-monthly="39" data-yearly="374">39</span>
+                            <span class="period" data-monthly="/month" data-yearly="/year">/month</span>
+                        </div>
+                        <div class="savings-badge" style="display: none;">Save $94/year</div>
+                    </div>
+                    <div class="plan-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Unlimited generations
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            8K ultra HD quality (4096x4096)
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            24/7 priority support
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            All AI models & styles
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            API access
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Early access to features
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            Custom training models
+                        </div>
+                    </div>
+                    <button class="plan-btn" data-plan="premium">Go Premium</button>
+                </div>
+            </div>
+
+            <!-- Payment Method Section -->
+            <div class="payment-section" id="paymentSection" style="display: none;">
+                <h2><i class="fas fa-credit-card"></i> Payment Information</h2>
+                <div class="payment-form">
+                    <div class="selected-plan">
+                        <h3>Selected Plan: <span id="selectedPlanName">Pro</span></h3>
+                        <p>
+                            <span id="selectedPlanPrice">$19/month</span>
+                            <span id="selectedPlanBilling"></span>
+                        </p>
+                    </div>
+                    
+                    <form id="paymentForm">
+                        <div class="form-group">
+                            <label for="cardNumber">Card Number</label>
+                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expiryDate">Expiry Date</label>
+                                <input type="text" id="expiryDate" placeholder="MM/YY" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cvv">CVV</label>
+                                <input type="text" id="cvv" placeholder="123" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cardName">Name on Card</label>
+                            <input type="text" id="cardName" placeholder="John Doe" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="billingEmail">Billing Email</label>
+                            <input type="email" id="billingEmail" placeholder="john@example.com" required>
+                        </div>
+                        
+                        <div class="payment-actions">
+                            <button type="button" class="cancel-btn" id="cancelPayment">Cancel</button>
+                            <button type="submit" class="confirm-btn">
+                                <i class="fas fa-lock"></i>
+                                Confirm Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="faq-section">
+                <h2>Frequently Asked Questions</h2>
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h4>Can I change my plan anytime?</h4>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and you'll be charged the prorated amount.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h4>What happens to unused generations?</h4>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Unused generations don't roll over to the next month. Each month starts fresh with your plan's allocation.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h4>Is there a free trial?</h4>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! New users get 5 free generations to try our service. No credit card required for the trial.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Subscribe page functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Back button
+            document.getElementById('backBtn').addEventListener('click', () => {
+                window.history.back();
+            });
+
+            // Billing toggle (Monthly/Yearly)
+            const billingToggle = document.getElementById('billingToggle');
+            const amounts = document.querySelectorAll('.amount');
+            const periods = document.querySelectorAll('.period');
+            const savingsBadges = document.querySelectorAll('.savings-badge');
+
+            billingToggle.addEventListener('change', () => {
+                const isYearly = billingToggle.checked;
+                
+                amounts.forEach(amount => {
+                    const monthly = amount.dataset.monthly;
+                    const yearly = amount.dataset.yearly;
+                    amount.textContent = isYearly ? yearly : monthly;
+                });
+
+                periods.forEach(period => {
+                    const monthly = period.dataset.monthly;
+                    const yearly = period.dataset.yearly;
+                    period.textContent = isYearly ? yearly : monthly;
+                });
+
+                savingsBadges.forEach(badge => {
+                    badge.style.display = isYearly ? 'block' : 'none';
+                });
+            });
+
+            // Plan selection
+            const planBtns = document.querySelectorAll('.plan-btn');
+            planBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!AuthUtils.isLoggedIn()) {
+                        alert('Please log in to subscribe to a plan.');
+                        return;
+                    }
+
+                    const plan = btn.dataset.plan;
+                    const planCard = btn.closest('.pricing-card');
+                    const planName = planCard.querySelector('h3').textContent;
+                    const planPrice = planCard.querySelector('.amount').textContent;
+                    const planPeriod = planCard.querySelector('.period').textContent;
+                    
+                    showPaymentForm(planName, planPrice, planPeriod);
+                });
+            });
+
+            // Payment form
+            const paymentForm = document.getElementById('paymentForm');
+            const cancelPayment = document.getElementById('cancelPayment');
+
+            cancelPayment.addEventListener('click', () => {
+                hidePaymentForm();
+            });
+
+            paymentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Here you would integrate with a payment processor like Stripe
+                alert('Payment processing would be implemented here with Stripe or similar service.');
+            });
+
+            // FAQ accordion
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    const answer = item.querySelector('.faq-answer');
+                    const icon = question.querySelector('i');
+                    
+                    // Close other open items
+                    faqItems.forEach(otherItem => {
+                        if (otherItem !== item) {
+                            otherItem.querySelector('.faq-answer').style.display = 'none';
+                            otherItem.querySelector('.faq-question i').style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    
+                    // Toggle current item
+                    if (answer.style.display === 'block') {
+                        answer.style.display = 'none';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        answer.style.display = 'block';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                });
+            });
+
+            // Load user email if logged in
+            if (AuthUtils.isLoggedIn()) {
+                const userInfo = AuthUtils.getUserInfo();
+                if (userInfo) {
+                    document.getElementById('billingEmail').value = userInfo.email;
+                }
+            }
+        });
+
+        function showPaymentForm(planName, planPrice, planPeriod) {
+            document.getElementById('selectedPlanName').textContent = planName;
+            document.getElementById('selectedPlanPrice').textContent = `$${planPrice}${planPeriod}`;
+            document.getElementById('paymentSection').style.display = 'block';
+            document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hidePaymentForm() {
+            document.getElementById('paymentSection').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

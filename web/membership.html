@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Membership - Joyful AI Art Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="public/images/background/title.png">
+    <link rel="shortcut icon" type="image/png" href="public/images/background/title.png">
+    <link rel="apple-touch-icon" href="public/images/background/title.png">
+    
+    <link rel="stylesheet" href="styles.css?v=5.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="membership-page">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 80px;">
+            <!-- Logo Area -->
+            <div class="nav-logo" style="display: flex !important; align-items: center !important; flex: none !important;">
+                <img src="public/images/background/logo.png" alt="Joyful" class="logo-img" style="width: 60px !important; height: 60px !important; display: block !important; object-fit: contain;">
+            </div>
+            
+            <!-- Back Button -->
+            <button class="back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="membership-main">
+        <div class="membership-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1><i class="fas fa-crown"></i> Membership</h1>
+                <p>Your current membership status and upgrade options</p>
+            </div>
+
+            <!-- Current Membership Status -->
+            <div class="membership-status">
+                <div class="status-card current">
+                    <div class="status-header">
+                        <div class="status-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="status-info">
+                            <h3>Free Trial</h3>
+                            <p>Current Plan</p>
+                        </div>
+                    </div>
+                    <div class="status-details">
+                        <div class="status-item">
+                            <span class="label">Generations Remaining:</span>
+                            <span class="value" id="remainingGenerations">5</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Trial Expires:</span>
+                            <span class="value" id="trialExpiry">30 days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Plans -->
+            <div class="pricing-section">
+                <h2>Upgrade Your Plan</h2>
+                <div class="pricing-grid">
+                    <!-- Basic Plan -->
+                    <div class="pricing-card">
+                        <div class="plan-header">
+                            <h3>Basic</h3>
+                            <div class="plan-price">
+                                <span class="currency">$</span>
+                                <span class="amount">9</span>
+                                <span class="period">/month</span>
+                            </div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                100 AI generations per month
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                HD quality images
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Email support
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Commercial use rights
+                            </div>
+                        </div>
+                        <button class="plan-btn">Choose Basic</button>
+                    </div>
+
+                    <!-- Pro Plan -->
+                    <div class="pricing-card popular">
+                        <div class="popular-badge">Most Popular</div>
+                        <div class="plan-header">
+                            <h3>Pro</h3>
+                            <div class="plan-price">
+                                <span class="currency">$</span>
+                                <span class="amount">19</span>
+                                <span class="period">/month</span>
+                            </div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                500 AI generations per month
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                4K ultra HD quality
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Priority support
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Advanced AI models
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                No watermarks
+                            </div>
+                        </div>
+                        <button class="plan-btn primary">Choose Pro</button>
+                    </div>
+
+                    <!-- Premium Plan -->
+                    <div class="pricing-card">
+                        <div class="plan-header">
+                            <h3>Premium</h3>
+                            <div class="plan-price">
+                                <span class="currency">$</span>
+                                <span class="amount">39</span>
+                                <span class="period">/month</span>
+                            </div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Unlimited generations
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                8K ultra HD quality
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                24/7 priority support
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                All AI models & styles
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                API access
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-check"></i>
+                                Early access to new features
+                            </div>
+                        </div>
+                        <button class="plan-btn">Choose Premium</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Comparison -->
+            <div class="features-section">
+                <h2>Feature Comparison</h2>
+                <div class="comparison-table">
+                    <div class="table-header">
+                        <div class="feature-name">Feature</div>
+                        <div class="plan-column">Free Trial</div>
+                        <div class="plan-column">Basic</div>
+                        <div class="plan-column">Pro</div>
+                        <div class="plan-column">Premium</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Monthly Generations</div>
+                        <div class="plan-column">5</div>
+                        <div class="plan-column">100</div>
+                        <div class="plan-column">500</div>
+                        <div class="plan-column">Unlimited</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Image Quality</div>
+                        <div class="plan-column">Standard</div>
+                        <div class="plan-column">HD</div>
+                        <div class="plan-column">4K</div>
+                        <div class="plan-column">8K</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">AI Models</div>
+                        <div class="plan-column">Basic</div>
+                        <div class="plan-column">Standard</div>
+                        <div class="plan-column">Advanced</div>
+                        <div class="plan-column">All Models</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Support</div>
+                        <div class="plan-column">Community</div>
+                        <div class="plan-column">Email</div>
+                        <div class="plan-column">Priority</div>
+                        <div class="plan-column">24/7 Priority</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Membership page specific functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Back button functionality
+            document.getElementById('backBtn').addEventListener('click', () => {
+                window.history.back();
+            });
+
+            // Plan selection functionality
+            const planBtns = document.querySelectorAll('.plan-btn');
+            planBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const planCard = btn.closest('.pricing-card');
+                    const planName = planCard.querySelector('h3').textContent;
+                    
+                    // For now, just show an alert
+                    alert(`You selected the ${planName} plan. Payment integration coming soon!`);
+                });
+            });
+
+            // Load user membership info if logged in
+            if (AuthUtils.isLoggedIn()) {
+                // In a real app, this would fetch from the API
+                // For now, we'll just update the UI with demo data
+                updateMembershipStatus();
+            }
+        });
+
+        function updateMembershipStatus() {
+            // This would normally fetch real data from the API
+            document.getElementById('remainingGenerations').textContent = '5';
+            document.getElementById('trialExpiry').textContent = '30 days';
+        }
+    </script>
+</body>
+</html>

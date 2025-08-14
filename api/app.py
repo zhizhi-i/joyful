@@ -15,6 +15,18 @@ from dashscope import ImageSynthesis
 import hashlib
 from datetime import datetime, timedelta
 import secrets
+from database_migration import DatabaseMigration
+from email_verification import email_service
+
+# 加载环境变量
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass  # 如果没有安装python-dotenv，跳过
 
 # 配置日志 - 动态日志级别
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
@@ -77,7 +89,23 @@ MYSQL_CONFIG = {
 
 class UserDatabase:
     def __init__(self):
-        self.init_database()
+        # 运行数据库迁移
+        self.run_migrations()
+    
+    def run_migrations(self):
+        """运行数据库迁移"""
+        logger.info("开始数据库迁移检查...")
+        try:
+            migration_manager = DatabaseMigration(MYSQL_CONFIG)
+            success = migration_manager.run_migrations()
+            if success:
+                logger.info("数据库迁移完成")
+            else:
+                logger.error("数据库迁移失败")
+                raise Exception("数据库迁移失败")
+        except Exception as e:
+            logger.error(f"数据库迁移异常: {e}")
+            raise e
     
     def get_connection(self):
         """获取MySQL连接"""
@@ -87,42 +115,6 @@ class UserDatabase:
         except Error as e:
             logger.error(f"MySQL连接失败: {e}")
             raise e
-    
-    def init_database(self):
-        """初始化数据库"""
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            # 创建用户表（如果不存在）
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    role VARCHAR(20) NOT NULL DEFAULT 'user',
-                    demo_count INT NOT NULL DEFAULT 5,
-                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # 创建使用记录表（如果不存在）
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS usage_logs (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    user_id INT,
-                    demo_type VARCHAR(50) NOT NULL,
-                    used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            logger.info("数据库初始化成功")
-        except Exception as e:
-            logger.error(f"数据库初始化失败: {e}")
     
     def hash_password(self, password):
         """哈希密码"""
@@ -193,6 +185,33 @@ class UserDatabase:
             cursor.execute(
                 'SELECT id, email, role, demo_count FROM users WHERE id = %s',
                 (user_id,)
+            )
+            
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if user:
+                return {
+                    'id': user[0],
+                    'email': user[1],
+                    'is_admin': user[2] == 'admin',
+                    'trial_count': user[3]
+                }
+            return None
+        except Exception as e:
+            logger.error(f"获取用户信息失败: {e}")
+            return None
+    
+    def get_user_by_email(self, email):
+        """通过邮箱获取用户信息"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'SELECT id, email, role, demo_count FROM users WHERE email = %s',
+                (email,)
             )
             
             user = cursor.fetchone()
@@ -492,20 +511,106 @@ except ValueError as e:
     generator = None
 
 # 用户认证API路由
+@app.route('/api/send-verification-code', methods=['POST'])
+def send_verification_code():
+    """发送邮箱验证码"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email'):
+            return jsonify({
+                "success": False,
+                "message": "Email is required"
+            }), 400
+        
+        email = data.get('email').strip().lower()
+        
+        # 简单邮箱验证
+        if '@' not in email or '.' not in email:
+            return jsonify({
+                "success": False,
+                "message": "Invalid email format"
+            }), 400
+        
+        # 检查邮箱是否已注册
+        existing_user = user_db.get_user_by_email(email)
+        if existing_user:
+            return jsonify({
+                "success": False,
+                "message": "Email already registered"
+            }), 400
+        
+        # 发送验证码
+        result = email_service.send_verification_code(email)
+        
+        if result['success']:
+            logger.info(f"验证码发送成功: {email}")
+            return jsonify({
+                "success": True,
+                "message": result['message'],
+                "expires_in_minutes": result['expires_in_minutes']
+            })
+        else:
+            logger.warning(f"验证码发送失败: {email}, 原因: {result['message']}")
+            return jsonify({
+                "success": False,
+                "message": result['message']
+            }), 400
+        
+    except Exception as e:
+        logger.error(f"发送验证码异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to send verification code"
+        }), 500
+
+@app.route('/api/verify-email-code', methods=['POST'])
+def verify_email_code():
+    """验证邮箱验证码"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('code'):
+            return jsonify({
+                "success": False,
+                "message": "Email and verification code are required"
+            }), 400
+        
+        email = data.get('email').strip().lower()
+        code = data.get('code').strip()
+        
+        # 验证验证码
+        result = email_service.verify_code(email, code)
+        
+        if result['success']:
+            logger.info(f"邮箱验证成功: {email}")
+        else:
+            logger.warning(f"邮箱验证失败: {email}, 原因: {result['message']}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"验证邮箱验证码异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Failed to verify code"
+        }), 500
+
 @app.route('/api/register', methods=['POST'])
 def register():
     """用户注册"""
     try:
         data = request.get_json()
         
-        if not data or not data.get('email') or not data.get('password'):
+        if not data or not data.get('email') or not data.get('password') or not data.get('verification_code'):
             return jsonify({
                 "success": False,
-                "message": "Email and password are required"
+                "message": "Email, password and verification code are required"
             }), 400
         
         email = data.get('email').strip().lower()
         password = data.get('password')
+        verification_code = data.get('verification_code').strip()
         
         # 简单邮箱验证
         if '@' not in email or '.' not in email:
@@ -519,6 +624,14 @@ def register():
             return jsonify({
                 "success": False,
                 "message": "Password must be at least 6 characters long"
+            }), 400
+        
+        # 验证邮箱验证码
+        verification_result = email_service.verify_code(email, verification_code)
+        if not verification_result['success']:
+            return jsonify({
+                "success": False,
+                "message": f"Email verification failed: {verification_result['message']}"
             }), 400
         
         # 创建用户
@@ -834,6 +947,8 @@ if __name__ == '__main__':
     logger.info(f"数据库配置: {MYSQL_CONFIG['host']}:{MYSQL_CONFIG['port']}/{MYSQL_CONFIG['database']}")
     
     logger.info("API文档:")
+    logger.info("  POST /api/send-verification-code - 发送邮箱验证码")
+    logger.info("  POST /api/verify-email-code - 验证邮箱验证码")
     logger.info("  POST /api/register - 用户注册")
     logger.info("  POST /api/login - 用户登录")
     logger.info("  GET  /api/user/info - 获取用户信息")

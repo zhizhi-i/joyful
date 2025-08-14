@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - Joyful AI Art Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="public/images/background/title.png">
+    <link rel="shortcut icon" type="image/png" href="public/images/background/title.png">
+    <link rel="apple-touch-icon" href="public/images/background/title.png">
+    
+    <link rel="stylesheet" href="styles.css?v=5.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="account-page">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 80px;">
+            <!-- Logo Area -->
+            <div class="nav-logo" style="display: flex !important; align-items: center !important; flex: none !important;">
+                <img src="public/images/background/logo.png" alt="Joyful" class="logo-img" style="width: 60px !important; height: 60px !important; display: block !important; object-fit: contain;">
+            </div>
+            
+            <!-- Back Button -->
+            <button class="back-btn" id="backBtn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="account-main">
+        <div class="account-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1><i class="fas fa-user-cog"></i> Account Settings</h1>
+                <p>Manage your account information and preferences</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="account">
+                    <i class="fas fa-user"></i>
+                    <span>Account</span>
+                </button>
+                <button class="tab-btn" data-tab="information">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Information</span>
+                </button>
+            </div>
+
+            <!-- Account Tab Content -->
+            <div class="tab-content" id="account-tab">
+                <div class="account-card">
+                    <div class="user-profile">
+                        <div class="user-avatar-large">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-details">
+                            <h3 id="userDisplayName">User Name</h3>
+                            <p id="userDisplayEmail">user@example.com</p>
+                            <span class="user-status">Active Member</span>
+                        </div>
+                        <button class="edit-profile-btn">
+                            <i class="fas fa-edit"></i>
+                            Edit Profile
+                        </button>
+                    </div>
+                </div>
+
+                <div class="account-card">
+                    <h3><i class="fas fa-key"></i> Security</h3>
+                    <div class="security-options">
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h4>Password</h4>
+                                <p>Last changed 3 months ago</p>
+                            </div>
+                            <button class="security-btn">Change Password</button>
+                        </div>
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h4>Email Verification</h4>
+                                <p>Your email is verified</p>
+                            </div>
+                            <span class="status-badge verified">
+                                <i class="fas fa-check"></i> Verified
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information Tab Content -->
+            <div class="tab-content" id="information-tab" style="display: none;">
+                <div class="account-card">
+                    <h3><i class="fas fa-chart-bar"></i> Usage Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalGenerations">0</div>
+                            <div class="stat-label">Total Generations</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="remainingTrial">5</div>
+                            <div class="stat-label">Trial Remaining</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="memberSince">2025</div>
+                            <div class="stat-label">Member Since</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="account-card">
+                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-palette"></i>
+                            </div>
+                            <div class="activity-details">
+                                <h4>Image Generated</h4>
+                                <p>Created AI artwork using prompt "Beautiful landscape"</p>
+                                <span class="activity-time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </div>
+                            <div class="activity-details">
+                                <h4>Account Login</h4>
+                                <p>Logged in from Chrome on macOS</p>
+                                <span class="activity-time">1 day ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Account page specific functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            // Back button functionality
+            document.getElementById('backBtn').addEventListener('click', () => {
+                window.history.back();
+            });
+
+            // Tab functionality
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    
+                    // Update active tab button
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Show target tab content
+                    tabContents.forEach(content => {
+                        if (content.id === `${targetTab}-tab`) {
+                            content.style.display = 'block';
+                        } else {
+                            content.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // Load user information
+            if (AuthUtils.isLoggedIn()) {
+                const userInfo = AuthUtils.getUserInfo();
+                if (userInfo) {
+                    document.getElementById('userDisplayName').textContent = userInfo.email.split('@')[0];
+                    document.getElementById('userDisplayEmail').textContent = userInfo.email;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
