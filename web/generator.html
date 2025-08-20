@@ -32,6 +32,18 @@
                     <span>Home</span>
                 </a>
                 
+                <!-- User Status Display (visible when logged in) -->
+                <div class="user-status-display" id="userStatusDisplay" style="display: none;">
+                    <div class="subscription-info" id="subscriptionInfo">
+                        <span class="subscription-plan" id="subscriptionPlan">Subscribe</span>
+                        <i class="fas fa-star"></i>
+                        <span class="trial-count" id="trialCount">0</span>
+                    </div>
+                    <div class="user-avatar-small" id="userAvatarSmall">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                
                 <!-- Login Button (visible when not logged in) -->
                 <button class="nav-link login-btn" id="loginBtn">
                     <i class="fas fa-user"></i>
@@ -74,102 +86,224 @@
 
     <!-- Main Container -->
     <div class="generator-container">
-        <!-- Main Content -->
-        <main class="generator-main-content">
-            <div class="generator-content-wrapper">
-                <!-- Input Section -->
-                <div class="generator-input-section">
-                    
-                    <div class="prompt-container">
-                        <textarea 
-                            id="prompt-input" 
-                            placeholder="Describe what you want to create..."
-                            rows="4"
-                        ></textarea>
-                        
-                        <div class="input-tools">
-                            <span class="char-count">0/500</span>
-                        </div>
-                    </div>
-
-                    <!-- Image Count Selection -->
-                    <div class="image-count-section">
-                        <h3>Image Count</h3>
-                        <select id="image-count" class="count-select">
-                            <option value="1" selected>1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                        </select>
-                    </div>
-
-                    <!-- Aspect Ratio Selection -->
-                    <div class="aspect-ratio-section">
-                        <h3>Aspect Ratio</h3>
-                        <div class="ratio-grid">
-                            <button class="ratio-btn active" data-ratio="1:1">
-                                <div class="ratio-icon square"></div>
-                                <span>1:1</span>
-                            </button>
-                            <button class="ratio-btn" data-ratio="16:9">
-                                <div class="ratio-icon wide"></div>
-                                <span>16:9</span>
-                            </button>
-                            <button class="ratio-btn" data-ratio="9:16">
-                                <div class="ratio-icon tall"></div>
-                                <span>9:16</span>
-                            </button>
-                            <button class="ratio-btn" data-ratio="4:3">
-                                <div class="ratio-icon standard"></div>
-                                <span>4:3</span>
-                            </button>
-                            <button class="ratio-btn" data-ratio="3:4">
-                                <div class="ratio-icon portrait"></div>
-                                <span>3:4</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Generate Button -->
-                    <button class="generate-btn" id="generate-btn">
-                        <i class="fas fa-magic btn-icon"></i>
-                        <span class="btn-text">Generate Images</span>
-                    </button>
-                </div>
+        <!-- Conversations Sidebar -->
+        <div class="conversations-sidebar" id="conversationsSidebar">
+            <div class="sidebar-header">
+                <h3>Conversations</h3>
+                <button class="new-conversation-btn" id="newConversationBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Chat</span>
+                </button>
             </div>
-        </main>
-
-        <!-- Right Panel - Preview Area -->
-        <div class="generator-preview-panel">
             
-            <div class="preview-container">
-                <!-- Current Generation Area -->
-                <div class="current-generation">
-                    <!-- Progress Display -->
-                    <div class="progress-overlay" id="progress-overlay" style="display: none;">
-                        <div class="progress-content">
-                            <div class="progress-spinner"></div>
-                            <div class="progress-info">
-                                <span class="progress-text">Generating...</span>
-                                <span class="progress-percentage">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="preview-placeholder" id="preview-area">
-                        <div class="placeholder-content">
-                            <i class="fas fa-image"></i>
-                            <h3>Start creating now</h3>
-                            <p>Enter your prompt on the left to begin creating</p>
-                        </div>
-                    </div>
-                    
-                    <div class="current-images" id="current-images" style="display: none;">
-                        <!-- Current generated images will be displayed here -->
-                    </div>
+            <div class="conversations-list" id="conversationsList">
+                <!-- Conversation list will be dynamically generated here -->
+                <div class="conversation-placeholder">
+                    <i class="fas fa-comments"></i>
+                    <p>No conversations yet<br>Click "New Chat" to start</p>
                 </div>
             </div>
         </div>
+
+        <!-- Main Content -->
+        <main class="generator-main-content">
+            <div class="generator-content-wrapper">
+                <!-- Preview Panel -->
+                <div class="generator-preview-panel">
+                    <div class="preview-container">
+                        <div class="preview-placeholder" id="preview-area">
+                            <div class="placeholder-content">
+                                <i class="fas fa-image"></i>
+                                <h3>Start creating now</h3>
+                                <p>Enter your prompt below to begin creating</p>
+                            </div>
+                        </div>
+                        
+                        <div class="current-images" id="current-images" style="display: none;">
+                            <!-- Current generated images will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <div class="generator-input-section">
+                    <div class="prompt-container" id="promptContainer">
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="prompt-input" 
+                                placeholder="Describe what to generate: subjects, scene, style, lighting, details"
+                                rows="1"
+                            ></textarea>
+                            <!-- 内嵌的生成参数按钮（移入输入框内部底部） -->
+                            <div class="generation-controls inline-inside" id="inlineGenerationControls">
+                                <!-- Content Type Selection -->
+                                <div class="control-group">
+                                    <div class="selector-button" id="contentTypeSelector">
+                                        <span class="selector-icon">
+                                            <i class="fas fa-image"></i>
+                                        </span>
+                                        <span class="selector-text">Image</span>
+                                        <i class="fas fa-chevron-up"></i>
+                                    </div>
+                                    <div class="selector-dropdown" id="contentTypeDropdown">
+                                        <div class="dropdown-option active" data-value="image">
+                                            <span class="option-icon">🖼️</span>
+                                            <span>Image</span>
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <div class="dropdown-option" data-value="video">
+                                            <span class="option-icon">🎬</span>
+                                            <span>Video</span>
+                                            <i class="fas fa-check" style="display: none;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Image Controls -->
+                                <div class="image-controls" id="imageControls">
+                                    <!-- Aspect Ratio Selection -->
+                                    <div class="control-group">
+                                        <div class="selector-button" id="aspectRatioSelector">
+                                            <span class="selector-icon">
+                                                <div class="ratio-preview square"></div>
+                                            </span>
+                                            <span class="selector-text">1:1</span>
+                                            <i class="fas fa-chevron-up"></i>
+                                        </div>
+                                        <div class="selector-dropdown" id="aspectRatioDropdown">
+                                            <div class="dropdown-option active" data-value="1:1">
+                                                <span class="option-icon">
+                                                    <div class="ratio-preview square"></div>
+                                                </span>
+                                                <span>1:1</span>
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="16:9">
+                                                <span class="option-icon">
+                                                    <div class="ratio-preview wide"></div>
+                                                </span>
+                                                <span>16:9</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="9:16">
+                                                <span class="option-icon">
+                                                    <div class="ratio-preview tall"></div>
+                                                </span>
+                                                <span>9:16</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="4:3">
+                                                <span class="option-icon">
+                                                    <div class="ratio-preview standard"></div>
+                                                </span>
+                                                <span>4:3</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="3:4">
+                                                <span class="option-icon">
+                                                    <div class="ratio-preview portrait"></div>
+                                                </span>
+                                                <span>3:4</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Image Count Selection -->
+                                    <div class="control-group">
+                                        <div class="selector-button" id="imageCountSelector">
+                                            <span class="selector-icon"><i class="fas fa-images"></i></span>
+                                            <span class="selector-text">1</span>
+                                            <i class="fas fa-chevron-up"></i>
+                                        </div>
+                                        <div class="selector-dropdown" id="imageCountDropdown">
+                                            <div class="dropdown-option active" data-value="1">
+                                                <span>1</span>
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="2">
+                                                <span>2</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="3">
+                                                <span>3</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="4">
+                                                <span>4</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Video Controls (hidden by default) -->
+                                <div class="video-controls" id="videoControls" style="display: none;">
+                                    <div class="control-group">
+                                        <div class="selector-button" id="videoTypeSelector">
+                                            <span class="selector-icon">
+                                                <i class="fas fa-photo-video"></i>
+                                            </span>
+                                            <span class="selector-text">Image to Video</span>
+                                            <i class="fas fa-chevron-up"></i>
+                                        </div>
+                                        <div class="selector-dropdown" id="videoTypeDropdown">
+                                            <div class="dropdown-option active" data-value="image-to-video">
+                                                <span class="option-icon">🖼️➡️🎬</span>
+                                                <span>Image to Video</span>
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="text-to-video">
+                                                <span class="option-icon">📝➡️🎬</span>
+                                                <span>Text to Video</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Generate Button - 绝对定位在输入框右下角 -->
+                        <button class="generate-btn" id="generate-btn">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        
+                        <!-- 紧凑模式下显示的简化控件 -->
+                        <div class="compact-controls">
+                            <div class="control-group">
+                                <button class="selector-button" id="contentTypeSelectorCompact">
+                                    <span class="selector-icon">
+                                        <i class="fas fa-image"></i>
+                                    </span>
+                                    <span class="selector-text">Image</span>
+                                </button>
+                            </div>
+                            <div class="control-group">
+                                <button class="selector-button" id="aspectRatioSelectorCompact">
+                                    <span class="selector-icon">
+                                        <div class="ratio-preview square"></div>
+                                    </span>
+                                    <span class="selector-text">1:1</span>
+                                </button>
+                            </div>
+                            <div class="control-group">
+                                <button class="selector-button" id="imageCountSelectorCompact">
+                                    <span class="selector-icon">
+                                        <i class="fas fa-images"></i>
+                                    </span>
+                                    <span class="selector-text">1</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Controls 保留占位（现在已内嵌） -->
+                        <div class="expandable-controls" id="expandableControls" style="display:none;"></div>
+                        
+                        <div class="input-footer">
+                            <span class="char-count">0/500</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- 登录模态框 -->
@@ -307,8 +441,8 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
-<script src="auth.js"></script>
-    <script src="script.js"></script>
+    <script src="config.js?v=20250120-2"></script>
+<script src="auth.js?v=20250120-2"></script>
+    <script src="script.js?v=20250120-2"></script>
 </body>
 </html> 

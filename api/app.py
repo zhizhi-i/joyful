@@ -307,6 +307,205 @@ class UserDatabase:
         except Exception as e:
             logger.error(f"检查试用状态失败: {e}")
             raise e
+    
+    # ===== 会话管理方法 =====
+    
+    def create_conversation(self, user_id, title=None):
+        """创建新会话"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 如果没有提供标题，生成默认标题
+            if not title:
+                # 获取用户当前会话数量
+                cursor.execute('SELECT COUNT(*) FROM conversations WHERE user_id = %s', (user_id,))
+                count = cursor.fetchone()[0]
+                title = f"Chat {count + 1}"
+            
+            cursor.execute(
+                'INSERT INTO conversations (user_id, title, created_at, updated_at) VALUES (%s, %s, NOW(), NOW())',
+                (user_id, title)
+            )
+            
+            conversation_id = cursor.lastrowid
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"会话创建成功: {conversation_id}, 用户: {user_id}, 标题: {title}")
+            return conversation_id
+        except Exception as e:
+            logger.error(f"创建会话失败: {e}")
+            raise e
+    
+    def get_user_conversations(self, user_id):
+        """获取用户的所有会话"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = %s ORDER BY updated_at DESC',
+                (user_id,)
+            )
+            
+            conversations = []
+            for row in cursor.fetchall():
+                conversations.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'created_at': row[2].isoformat() if row[2] else None,
+                    'updated_at': row[3].isoformat() if row[3] else None
+                })
+            
+            cursor.close()
+            conn.close()
+            
+            return conversations
+        except Exception as e:
+            logger.error(f"获取用户会话失败: {e}")
+            raise e
+    
+    def update_conversation_title(self, conversation_id, user_id, title):
+        """更新会话标题"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'UPDATE conversations SET title = %s, updated_at = NOW() WHERE id = %s AND user_id = %s',
+                (title, conversation_id, user_id)
+            )
+            
+            if cursor.rowcount == 0:
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"会话标题更新成功: {conversation_id}, 新标题: {title}")
+            return True
+        except Exception as e:
+            logger.error(f"更新会话标题失败: {e}")
+            raise e
+    
+    def delete_conversation(self, conversation_id, user_id):
+        """删除会话（级联删除相关图片历史）"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'DELETE FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if cursor.rowcount == 0:
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"会话删除成功: {conversation_id}")
+            return True
+        except Exception as e:
+            logger.error(f"删除会话失败: {e}")
+            raise e
+    
+    def save_image_history(self, conversation_id, user_id, prompt, image_url, image_base64, aspect_ratio='1:1', image_count=1):
+        """保存图片历史记录"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            cursor.execute(
+                '''INSERT INTO image_history 
+                   (conversation_id, user_id, prompt, image_url, image_base64, aspect_ratio, image_count, created_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())''',
+                (conversation_id, user_id, prompt, image_url, image_base64, aspect_ratio, image_count)
+            )
+            
+            history_id = cursor.lastrowid
+            
+            # 更新会话的 updated_at
+            cursor.execute(
+                'UPDATE conversations SET updated_at = NOW() WHERE id = %s',
+                (conversation_id,)
+            )
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"图片历史保存成功: {history_id}, 会话: {conversation_id}")
+            return history_id
+        except Exception as e:
+            logger.error(f"保存图片历史失败: {e}")
+            raise e
+    
+    def get_conversation_history(self, conversation_id, user_id, limit=50, offset=0):
+        """获取会话的图片历史"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            cursor.execute(
+                '''SELECT id, prompt, image_url, image_base64, aspect_ratio, image_count, created_at 
+                   FROM image_history 
+                   WHERE conversation_id = %s 
+                   ORDER BY created_at DESC 
+                   LIMIT %s OFFSET %s''',
+                (conversation_id, limit, offset)
+            )
+            
+            history = []
+            for row in cursor.fetchall():
+                history.append({
+                    'id': row[0],
+                    'prompt': row[1],
+                    'image_url': row[2],
+                    'image_base64': row[3],
+                    'aspect_ratio': row[4],
+                    'image_count': row[5],
+                    'created_at': row[6].isoformat() if row[6] else None
+                })
+            
+            cursor.close()
+            conn.close()
+            
+            return history
+        except Exception as e:
+            logger.error(f"获取会话历史失败: {e}")
+            raise e
 
 # 初始化数据库
 user_db = UserDatabase()
@@ -796,6 +995,7 @@ def health_check():
     return jsonify(result)
 
 @app.route('/api/generate', methods=['POST'])
+@jwt_required()
 def generate_image():
     """图片生成接口"""
     logger.info("=== 收到图片生成请求 ===")
@@ -809,6 +1009,10 @@ def generate_image():
         }), 500
     
     try:
+        # 获取当前用户ID
+        current_user_id = int(get_jwt_identity())
+        logger.info(f"当前用户ID: {current_user_id}")
+        
         data = request.get_json()
         logger.info(f"请求数据: {data}")
         
@@ -827,6 +1031,38 @@ def generate_image():
             return jsonify({
                 "success": False,
                 "error": error_msg
+            }), 400
+        
+        # 获取会话ID，如果没有提供则创建新会话
+        conversation_id = data.get('conversation_id')
+        if not conversation_id:
+            conversation_id = user_db.create_conversation(current_user_id)
+            logger.info(f"创建新会话: {conversation_id}")
+        else:
+            # 验证会话是否属于当前用户
+            try:
+                user_conversations = user_db.get_user_conversations(current_user_id)
+                valid_conversation = any(conv['id'] == conversation_id for conv in user_conversations)
+                if not valid_conversation:
+                    return jsonify({
+                        "success": False,
+                        "error": "无效的会话ID"
+                    }), 400
+            except Exception as e:
+                logger.error(f"验证会话失败: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": "会话验证失败"
+                }), 400
+        
+        # 检查并使用试用次数
+        try:
+            trial_result = user_db.use_trial(current_user_id)
+            logger.info(f"试用次数使用结果: {trial_result}")
+        except ValueError as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
             }), 400
         
         # 处理尺寸参数，将前端格式转换为API格式
@@ -862,6 +1098,30 @@ def generate_image():
         # 等待任务完成并获取结果
         result = generator.wait_and_get_result(task_result)
         logger.info(f"最终结果: {result}")
+        
+        # 如果生成成功，保存到会话历史
+        if result.get("success") and result.get("images"):
+            try:
+                # 为每张图片保存历史记录
+                for image in result["images"]:
+                    user_db.save_image_history(
+                        conversation_id=conversation_id,
+                        user_id=current_user_id,
+                        prompt=prompt,
+                        image_url=image.get("url", ""),
+                        image_base64=image.get("base64", ""),
+                        aspect_ratio=ratio,
+                        image_count=count
+                    )
+                
+                # 在返回结果中包含会话ID
+                result["conversation_id"] = conversation_id
+                result["remaining_trials"] = trial_result.get("remaining_trials", 0)
+                
+                logger.info(f"图片历史保存成功，会话: {conversation_id}")
+            except Exception as e:
+                logger.error(f"保存图片历史失败: {e}")
+                # 不影响图片生成结果，只记录错误
         
         return jsonify(result)
         
@@ -919,6 +1179,137 @@ def get_supported_ratios():
     }
     logger.info(f"支持比例响应: {result}")
     return jsonify(result)
+
+# ===== 会话管理API =====
+
+@app.route('/api/conversations', methods=['GET'])
+@jwt_required()
+def get_conversations():
+    """获取用户的所有会话"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        conversations = user_db.get_user_conversations(current_user_id)
+        
+        return jsonify({
+            "success": True,
+            "conversations": conversations
+        })
+    except Exception as e:
+        logger.error(f"获取会话列表失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/conversations', methods=['POST'])
+@jwt_required()
+def create_conversation():
+    """创建新会话"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        title = data.get('title') if data else None
+        
+        conversation_id = user_db.create_conversation(current_user_id, title)
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "message": "会话创建成功"
+        })
+    except Exception as e:
+        logger.error(f"创建会话失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/conversations/<int:conversation_id>', methods=['PUT'])
+@jwt_required()
+def update_conversation(conversation_id):
+    """更新会话标题"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        if not data or not data.get('title'):
+            return jsonify({
+                "success": False,
+                "error": "请提供会话标题"
+            }), 400
+        
+        title = data.get('title').strip()
+        user_db.update_conversation_title(conversation_id, current_user_id, title)
+        
+        return jsonify({
+            "success": True,
+            "message": "会话标题更新成功"
+        })
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 404
+    except Exception as e:
+        logger.error(f"更新会话标题失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/conversations/<int:conversation_id>', methods=['DELETE'])
+@jwt_required()
+def delete_conversation(conversation_id):
+    """删除会话"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        user_db.delete_conversation(conversation_id, current_user_id)
+        
+        return jsonify({
+            "success": True,
+            "message": "会话删除成功"
+        })
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 404
+    except Exception as e:
+        logger.error(f"删除会话失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/conversations/<int:conversation_id>/history', methods=['GET'])
+@jwt_required()
+def get_conversation_history(conversation_id):
+    """获取会话的图片历史"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        # 获取分页参数
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        history = user_db.get_conversation_history(conversation_id, current_user_id, limit, offset)
+        
+        return jsonify({
+            "success": True,
+            "history": history,
+            "conversation_id": conversation_id
+        })
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 404
+    except Exception as e:
+        logger.error(f"获取会话历史失败: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.errorhandler(413)
 def too_large(e):
