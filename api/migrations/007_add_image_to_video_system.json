@@ -1,0 +1,10 @@
+{
+    "version": "007",
+    "description": "添加Image to Video系统支持",
+    "sql": [
+        {
+            "description": "创建image_to_video_history表",
+            "query": "CREATE TABLE IF NOT EXISTS image_to_video_history (id INT AUTO_INCREMENT PRIMARY KEY, conversation_id INT NOT NULL, user_id INT NOT NULL, prompt TEXT NOT NULL, image_base64 LONGTEXT NOT NULL, video_url VARCHAR(512), size VARCHAR(20) DEFAULT '1920*1080', duration INT DEFAULT 5, orig_prompt TEXT, actual_prompt TEXT, usage_info JSON, task_id VARCHAR(128), submit_time DATETIME, scheduled_time DATETIME, end_time DATETIME, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_conversation_id (conversation_id), INDEX idx_user_id (user_id), INDEX idx_task_id (task_id), INDEX idx_created_at (created_at), FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)"
+        }
+    ]
+}

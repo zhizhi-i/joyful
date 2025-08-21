@@ -1,0 +1,13 @@
+{
+  "version": "006_update_video_system",
+  "name": "Update video history with additional fields",
+  "description": "Add orig_prompt, actual_prompt, usage_info, task_id fields to video_history table",
+  "created_at": "2025-08-21T10:00:00.000000",
+  "sql": [
+    "ALTER TABLE video_history ADD COLUMN orig_prompt TEXT AFTER prompt",
+    "ALTER TABLE video_history ADD COLUMN actual_prompt TEXT AFTER orig_prompt", 
+    "ALTER TABLE video_history ADD COLUMN usage_info JSON AFTER actual_prompt",
+    "ALTER TABLE video_history ADD COLUMN task_id VARCHAR(255) AFTER usage_info",
+    "ALTER TABLE video_history ADD INDEX idx_task_id (task_id)"
+  ]
+}

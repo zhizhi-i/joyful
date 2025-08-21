@@ -1,0 +1,9 @@
+{
+  "version": "005_add_video_system",
+  "name": "Add video generation history system",
+  "description": "Create video_history table for video generation tracking",
+  "created_at": "2025-08-20T10:00:00.000000",
+  "sql": [
+    "CREATE TABLE IF NOT EXISTS video_history (id INT AUTO_INCREMENT PRIMARY KEY, conversation_id INT NOT NULL, user_id INT NOT NULL, prompt TEXT NOT NULL, video_url VARCHAR(1024) NOT NULL, size VARCHAR(20) NOT NULL DEFAULT '1920*1080', duration INT NOT NULL DEFAULT 5, orig_prompt TEXT, actual_prompt TEXT, usage_info JSON, task_id VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_conversation_id (conversation_id), INDEX idx_user_id (user_id), INDEX idx_created_at (created_at), INDEX idx_task_id (task_id), FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+  ]
+}

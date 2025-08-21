@@ -173,8 +173,18 @@ class DatabaseMigration:
             cursor = conn.cursor()
             
             # 执行SQL语句
-            for sql_statement in migration['sql']:
-                if sql_statement.strip():
+            for sql_item in migration['sql']:
+                # 处理新格式的SQL项（字典格式）
+                if isinstance(sql_item, dict):
+                    sql_statement = sql_item.get('query', '')
+                    description = sql_item.get('description', '')
+                    if description:
+                        logger.debug(f"执行: {description}")
+                else:
+                    # 兼容旧格式（直接字符串）
+                    sql_statement = sql_item
+                
+                if sql_statement and sql_statement.strip():
                     logger.debug(f"执行SQL: {sql_statement[:100]}...")
                     cursor.execute(sql_statement)
             

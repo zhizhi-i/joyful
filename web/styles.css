@@ -336,12 +336,30 @@ body::before {
     min-width: 300px;
 }
 
+/* Video items in image grid */
+.image-grid .video-item {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    min-width: 400px;
+    max-height: 50vh;
+}
+
 /* 一张图片时使用更大的尺寸 */
 .image-grid .image-item:only-child {
     flex: 0 0 auto;
     width: auto;
     max-width: 800px;
     min-width: 500px;
+}
+
+/* 一个视频时使用更大的尺寸 */
+.image-grid .video-item:only-child {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 900px;
+    min-width: 600px;
+    max-height: 50vh;
 }
 
 /* 两张图片时每张占据约一半宽度 */
@@ -351,6 +369,15 @@ body::before {
     width: calc(50% - 10px);
     max-width: none;
     min-width: 300px;
+}
+
+/* 两个视频时每个占据约一半宽度 */
+.image-grid .video-item:first-child:nth-last-child(2),
+.image-grid .video-item:first-child:nth-last-child(2) ~ .video-item {
+    flex: 0 0 auto;
+    width: calc(50% - 10px);
+    max-width: none;
+    min-width: 400px;
 }
 
 .image-item {
@@ -440,6 +467,162 @@ body::before {
 .copy-btn:hover {
     background: #06b6d4;
     color: white;
+}
+
+/* Video Grid - 基于图片网格样式优化 */
+.video-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: flex-start !important;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.video-grid .video-item {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    min-width: 400px;
+    max-height: 50vh;
+}
+
+/* 一个视频时使用更大的尺寸 */
+.video-grid .video-item:only-child {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 900px;
+    min-width: 600px;
+    max-height: 50vh;
+}
+
+/* 两个视频时每个占据约一半宽度 */
+.video-grid .video-item:first-child:nth-last-child(2),
+.video-grid .video-item:first-child:nth-last-child(2) ~ .video-item {
+    flex: 0 0 auto;
+    width: calc(50% - 10px);
+    max-width: none;
+    min-width: 400px;
+}
+
+.video-item {
+    position: relative;
+    width: auto;
+    height: auto;
+    max-height: 50vh;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000000;
+    border: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.video-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+    border-color: transparent;
+}
+
+.video-item video {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    transition: transform 0.3s ease;
+}
+
+.video-item:hover video {
+    transform: scale(1.02);
+}
+
+/* Video Actions - 复用图片操作样式 */
+.video-actions {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 4px 6px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    width: auto;
+    height: auto;
+}
+
+.video-item:hover .video-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Video Container and Info */
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.video-info {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    backdrop-filter: blur(4px);
+}
+
+.video-resolution,
+.video-duration {
+    font-weight: 500;
+}
+
+.video-resolution {
+    color: #00d4ff;
+}
+
+.video-duration {
+    color: #ffffff;
+}
+
+/* Video Actions */
+.video-actions {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 4px 6px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    width: auto;
+    height: auto;
+}
+
+.video-item:hover .video-actions {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Loading States */
@@ -1940,6 +2123,9 @@ body::before {
     padding: 0;
     background: #000000;
     border: none;
+    /* 确保滚动正常工作 */
+    overflow: visible;
+    position: relative;
 }
 
 .sidebar-header {
@@ -2165,6 +2351,7 @@ body::before {
     flex-direction: column;
     background: #000000;
     min-height: 0; /* 确保可以收缩 */
+    overflow: visible; /* 确保子元素可见 */
 }
 
 /* Preview Panel - 占据剩余空间，内部可滚动 */
@@ -2293,6 +2480,8 @@ body::before {
     padding: 0 !important;
     position: relative !important;
     align-items: unset !important;
+    /* 为绝对定位的图片上传组件提供定位上下文 */
+    overflow: visible !important;
 }
 
 .prompt-container #prompt-input {
@@ -2928,6 +3117,12 @@ body::before {
     color: #0ea5e9;
 }
 
+/* 图片占位符内的百分比显示样式 */
+.image-placeholder .placeholder-percentage {
+    color: #0ea5e9;
+    font-weight: 600;
+}
+
 .placeholder-spinner {
     width: 48px;
     height: 48px;
@@ -2947,6 +3142,66 @@ body::before {
 .placeholder-percentage {
     font-size: 14px;
     font-weight: 500;
+}
+
+.placeholder-message {
+    font-size: 14px;
+    font-weight: 500;
+    color: #8b5cf6;
+    text-align: center;
+    line-height: 1.4;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+/* 视频生成占位符样式 - 基于图片占位符优化 */
+.video-placeholder {
+    width: 100%;
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    min-height: 300px; /* 视频占位符稍高一些 */
+    transition: all 0.3s ease;
+}
+
+.video-placeholder.generating {
+    border-color: #8b5cf6; /* 紫色主题用于视频 */
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    animation: pulse-border-video 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border-video {
+    0%, 100% { border-color: #8b5cf6; opacity: 0.8; }
+    50% { border-color: #a78bfa; opacity: 1; }
+}
+
+.video-placeholder .placeholder-content.generating {
+    color: #8b5cf6;
+}
+
+.video-placeholder .placeholder-spinner {
+    border: 4px solid rgba(139, 92, 246, 0.2);
+    border-left: 4px solid #8b5cf6;
+}
+
+/* 视频占位符内的提示消息样式 */
+.video-placeholder .placeholder-message {
+    color: #8b5cf6;
+    font-weight: 500;
+}
+
+/* Video group styling */
+.video-group {
+    margin-bottom: 32px;
+    background: rgba(139, 92, 246, 0.02);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(139, 92, 246, 0.1);
 }
 
 .image-item {
@@ -4783,4 +5038,117 @@ input:checked + .toggle-slider:before {
         padding: 10px 14px 36px 14px;
         font-size: 13px;
     }
+}
+
+/* Image Upload Section for Image to Video */
+.image-upload-section {
+    position: absolute;
+    top: -85px;
+    left: 20px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 8px;
+    z-index: 10;
+    pointer-events: auto;
+    /* 确保不影响滚动 */
+    overflow: visible;
+    contain: layout;
+}
+
+/* Image Upload Styles for Image to Video */
+#imageUploadGroup {
+    margin-top: 0;
+}
+
+.image-upload-area {
+    position: relative;
+    width: 140px;
+    height: 70px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.image-upload-area:hover {
+    border-color: rgba(0, 212, 255, 0.5);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-placeholder:hover {
+    color: #00d4ff;
+}
+
+.upload-placeholder i {
+    font-size: 16px;
+    margin-bottom: 2px;
+}
+
+.upload-placeholder span {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.uploaded-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.uploaded-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 0, 0, 0.8);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.remove-image-btn:hover {
+    background: rgba(255, 0, 0, 1);
+    transform: scale(1.1);
+}
+
+.upload-hint {
+    margin-top: 2px;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 9px;
+}
+
+.upload-hint span {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
 }

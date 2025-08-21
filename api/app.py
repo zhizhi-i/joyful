@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 import requests
 import tempfile
 import uuid
-from dashscope import ImageSynthesis
+from dashscope import ImageSynthesis, VideoSynthesis
 import hashlib
 from datetime import datetime, timedelta
 import secrets
@@ -39,6 +39,12 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# 全局变量：存储任务ID到会话ID的映射
+task_conversation_mapping = {}
+
+# 存储Image-to-Video任务的详细信息，用于任务完成时保存历史记录
+image_to_video_task_mapping = {}
 
 app = Flask(__name__)
 
@@ -462,7 +468,148 @@ class UserDatabase:
             raise e
     
     def get_conversation_history(self, conversation_id, user_id, limit=50, offset=0):
-        """获取会话的图片历史"""
+        """获取会话的图片和视频历史"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            # 获取图片历史
+            cursor.execute(
+                '''SELECT id, prompt, image_url, image_base64, aspect_ratio, image_count, created_at, 'image' as type
+                   FROM image_history 
+                   WHERE conversation_id = %s''',
+                (conversation_id,)
+            )
+            
+            history = []
+            for row in cursor.fetchall():
+                history.append({
+                    'id': row[0],
+                    'prompt': row[1],
+                    'image_url': row[2],
+                    'image_base64': row[3],
+                    'aspect_ratio': row[4],
+                    'image_count': row[5],
+                    'created_at': row[6].isoformat() if row[6] else None,
+                    'type': row[7]
+                })
+            
+            # 获取视频历史
+            cursor.execute(
+                '''SELECT id, prompt, video_url, size, duration, created_at, 'video' as type
+                   FROM video_history 
+                   WHERE conversation_id = %s''',
+                (conversation_id,)
+            )
+            
+            for row in cursor.fetchall():
+                history.append({
+                    'id': row[0],
+                    'prompt': row[1],
+                    'video_url': row[2],
+                    'size': row[3],
+                    'duration': row[4],
+                    'created_at': row[5].isoformat() if row[5] else None,
+                    'type': row[6]
+                })
+            
+            # 获取图片转视频历史
+            cursor.execute(
+                '''SELECT id, prompt, video_url, size, duration, created_at, 'image_to_video' as type, image_base64
+                   FROM image_to_video_history 
+                   WHERE conversation_id = %s''',
+                (conversation_id,)
+            )
+            
+            for row in cursor.fetchall():
+                history.append({
+                    'id': row[0],
+                    'prompt': row[1],
+                    'video_url': row[2],
+                    'size': row[3],
+                    'duration': row[4],
+                    'created_at': row[5].isoformat() if row[5] else None,
+                    'type': row[6],
+                    'image_base64': row[7]  # 包含源图片
+                })
+            
+            # 按创建时间倒序排序
+            history.sort(key=lambda x: x['created_at'], reverse=True)
+            
+            # 应用分页
+            start = offset
+            end = offset + limit
+            paginated_history = history[start:end]
+            
+            cursor.close()
+            conn.close()
+            
+            return paginated_history
+        except Exception as e:
+            logger.error(f"获取会话历史失败: {e}")
+            raise e
+    
+    def save_video_history(self, conversation_id, user_id, prompt, video_url, size='1920*1080', duration=5, orig_prompt=None, actual_prompt=None, usage_info=None, task_id=None):
+        """保存视频历史记录"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            # 转换usage_info为JSON字符串
+            usage_json = None
+            if usage_info:
+                import json
+                usage_json = json.dumps(usage_info)
+            
+            cursor.execute(
+                '''INSERT INTO video_history 
+                   (conversation_id, user_id, prompt, video_url, size, duration, orig_prompt, actual_prompt, usage_info, task_id, created_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())''',
+                (conversation_id, user_id, prompt, video_url, size, duration, orig_prompt, actual_prompt, usage_json, task_id)
+            )
+            
+            history_id = cursor.lastrowid
+            
+            # 更新会话的 updated_at
+            cursor.execute(
+                'UPDATE conversations SET updated_at = NOW() WHERE id = %s',
+                (conversation_id,)
+            )
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"视频历史保存成功: {history_id}, 会话: {conversation_id}")
+            return history_id
+        except Exception as e:
+            logger.error(f"保存视频历史失败: {e}")
+            raise e
+    
+    def get_conversation_video_history(self, conversation_id, user_id, limit=50, offset=0):
+        """获取会话的视频历史"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -479,8 +626,8 @@ class UserDatabase:
                 raise ValueError("会话不存在或无权限")
             
             cursor.execute(
-                '''SELECT id, prompt, image_url, image_base64, aspect_ratio, image_count, created_at 
-                   FROM image_history 
+                '''SELECT id, prompt, video_url, size, duration, orig_prompt, actual_prompt, usage_info, task_id, created_at 
+                   FROM video_history 
                    WHERE conversation_id = %s 
                    ORDER BY created_at DESC 
                    LIMIT %s OFFSET %s''',
@@ -489,14 +636,26 @@ class UserDatabase:
             
             history = []
             for row in cursor.fetchall():
+                # 解析usage_info JSON
+                usage_info = None
+                if row[7]:  # usage_info字段
+                    try:
+                        import json
+                        usage_info = json.loads(row[7])
+                    except json.JSONDecodeError:
+                        usage_info = None
+                
                 history.append({
                     'id': row[0],
                     'prompt': row[1],
-                    'image_url': row[2],
-                    'image_base64': row[3],
-                    'aspect_ratio': row[4],
-                    'image_count': row[5],
-                    'created_at': row[6].isoformat() if row[6] else None
+                    'video_url': row[2],
+                    'size': row[3],
+                    'duration': row[4],
+                    'orig_prompt': row[5],
+                    'actual_prompt': row[6],
+                    'usage': usage_info,
+                    'task_id': row[8],
+                    'created_at': row[9].isoformat() if row[9] else None
                 })
             
             cursor.close()
@@ -504,7 +663,114 @@ class UserDatabase:
             
             return history
         except Exception as e:
-            logger.error(f"获取会话历史失败: {e}")
+            logger.error(f"获取视频历史失败: {e}")
+            raise e
+    
+    def save_image_to_video_history(self, conversation_id, user_id, prompt, image_base64, video_url, size='1920*1080', duration=5, orig_prompt=None, actual_prompt=None, usage_info=None, task_id=None):
+        """保存图片转视频历史记录"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            # 转换usage_info为JSON字符串
+            usage_json = None
+            if usage_info:
+                import json
+                usage_json = json.dumps(usage_info)
+            
+            cursor.execute(
+                '''INSERT INTO image_to_video_history 
+                   (conversation_id, user_id, prompt, image_base64, video_url, size, duration, orig_prompt, actual_prompt, usage_info, task_id, created_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())''',
+                (conversation_id, user_id, prompt, image_base64, video_url, size, duration, orig_prompt, actual_prompt, usage_json, task_id)
+            )
+            
+            history_id = cursor.lastrowid
+            
+            # 更新会话的 updated_at
+            cursor.execute(
+                'UPDATE conversations SET updated_at = NOW() WHERE id = %s',
+                (conversation_id,)
+            )
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"图片转视频历史保存成功: {history_id}, 会话: {conversation_id}")
+            return history_id
+        except Exception as e:
+            logger.error(f"保存图片转视频历史失败: {e}")
+            raise e
+    
+    def get_conversation_image_to_video_history(self, conversation_id, user_id, limit=50, offset=0):
+        """获取会话的图片转视频历史"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # 验证会话是否属于用户
+            cursor.execute(
+                'SELECT id FROM conversations WHERE id = %s AND user_id = %s',
+                (conversation_id, user_id)
+            )
+            
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                raise ValueError("会话不存在或无权限")
+            
+            cursor.execute(
+                '''SELECT id, prompt, image_base64, video_url, size, duration, orig_prompt, actual_prompt, usage_info, task_id, created_at 
+                   FROM image_to_video_history 
+                   WHERE conversation_id = %s 
+                   ORDER BY created_at DESC 
+                   LIMIT %s OFFSET %s''',
+                (conversation_id, limit, offset)
+            )
+            
+            history = []
+            for row in cursor.fetchall():
+                # 解析usage_info JSON
+                usage_info = None
+                if row[8]:  # usage_info字段
+                    try:
+                        import json
+                        usage_info = json.loads(row[8])
+                    except json.JSONDecodeError:
+                        usage_info = None
+                
+                history.append({
+                    'id': row[0],
+                    'prompt': row[1],
+                    'image_base64': row[2],
+                    'video_url': row[3],
+                    'size': row[4],
+                    'duration': row[5],
+                    'orig_prompt': row[6],
+                    'actual_prompt': row[7],
+                    'usage': usage_info,
+                    'task_id': row[9],
+                    'created_at': row[10].isoformat() if row[10] else None
+                })
+            
+            cursor.close()
+            conn.close()
+            
+            return history
+        except Exception as e:
+            logger.error(f"获取图片转视频历史失败: {e}")
             raise e
 
 # 初始化数据库
@@ -698,16 +964,445 @@ class ImageGenerator:
                 "exception_type": type(e).__name__
             }
 
-# 全局图片生成器实例
+class VideoGenerator:
+    def __init__(self):
+        self.api_key = os.getenv("DASHSCOPE_API_KEY", "sk-bd2c58cc05844168bcf96bc07c2e81da")
+        logger.info(f"初始化VideoGenerator，API密钥: {self.api_key[:20]}...")
+        if not self.api_key:
+            raise ValueError("请设置环境变量 DASHSCOPE_API_KEY")
+    
+    def create_async_task(self, prompt, size="1920*1080"):
+        """创建异步视频生成任务"""
+        logger.info(f"=== 开始创建视频异步任务 ===")
+        logger.info(f"提示词: {prompt}")
+        logger.info(f"尺寸: {size}")
+        logger.info(f"API密钥: {self.api_key[:20]}...")
+        
+        try:
+            logger.info("调用 VideoSynthesis.async_call")
+            rsp = VideoSynthesis.async_call(
+                api_key=self.api_key,
+                model="wan2.2-t2v-plus",
+                prompt=prompt,
+                size=size
+            )
+            
+            logger.info(f"API响应状态码: {rsp.status_code}")
+            logger.info(f"API响应完整内容: {rsp}")
+            
+            if hasattr(rsp, 'output'):
+                logger.info(f"响应输出: {rsp.output}")
+            if hasattr(rsp, 'message'):
+                logger.info(f"响应消息: {rsp.message}")
+            if hasattr(rsp, 'code'):
+                logger.info(f"响应代码: {rsp.code}")
+            
+            if rsp.status_code == HTTPStatus.OK:
+                task_id = rsp.output.task_id if hasattr(rsp.output, 'task_id') else None
+                task_status = rsp.output.task_status if hasattr(rsp.output, 'task_status') else None
+                
+                logger.info(f"视频任务创建成功 - 任务ID: {task_id}, 状态: {task_status}")
+                
+                return {
+                    "success": True,
+                    "task_id": task_id,
+                    "task_status": task_status,
+                    "task_object": rsp,  # 返回完整的响应对象
+                    "message": "视频任务创建成功"
+                }
+            else:
+                error_msg = f"创建视频任务失败: {rsp.message if hasattr(rsp, 'message') else '未知错误'}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": rsp.status_code,
+                    "response_detail": str(rsp)
+                }
+        except Exception as e:
+            error_msg = f"创建视频任务异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+    
+    def wait_and_get_result(self, task_result):
+        """等待视频任务完成并获取结果"""
+        logger.info(f"=== 开始等待视频任务完成 ===")
+        
+        try:
+            # 使用原始的task对象，而不是重新构造
+            task_object = task_result.get("task_object")
+            if not task_object:
+                logger.error("没有找到有效的task对象")
+                return {
+                    "success": False,
+                    "error": "没有找到有效的task对象"
+                }
+            
+            logger.info(f"使用task对象等待视频结果: {task_object}")
+            logger.info("调用 VideoSynthesis.wait")
+            logger.info(f"传递API密钥: {self.api_key[:20]}...")
+            
+            rsp = VideoSynthesis.wait(task_object, api_key=self.api_key)
+            
+            logger.info(f"等待视频结果响应状态码: {rsp.status_code}")
+            logger.info(f"等待视频结果响应完整内容: {rsp}")
+            
+            if rsp.status_code == HTTPStatus.OK:
+                logger.info("视频任务完成成功，开始处理结果")
+                
+                video_url = rsp.output.video_url if hasattr(rsp.output, 'video_url') else None
+                task_status = rsp.output.task_status if hasattr(rsp.output, 'task_status') else 'UNKNOWN'
+                orig_prompt = rsp.output.orig_prompt if hasattr(rsp.output, 'orig_prompt') else None
+                actual_prompt = rsp.output.actual_prompt if hasattr(rsp.output, 'actual_prompt') else None
+                
+                # 获取使用统计信息
+                usage_info = {}
+                if hasattr(rsp, 'usage') and rsp.usage:
+                    usage_info = {
+                        'video_count': rsp.usage.video_count if hasattr(rsp.usage, 'video_count') else 1,
+                        'video_duration': rsp.usage.video_duration if hasattr(rsp.usage, 'video_duration') else 5,
+                        'video_ratio': rsp.usage.video_ratio if hasattr(rsp.usage, 'video_ratio') else '1920*1080'
+                    }
+                
+                logger.info(f"最终视频任务状态: {task_status}")
+                logger.info(f"视频URL: {video_url}")
+                
+                return {
+                    "success": True,
+                    "video_url": video_url,
+                    "task_status": task_status,
+                    "orig_prompt": orig_prompt,
+                    "actual_prompt": actual_prompt,
+                    "usage": usage_info
+                }
+            else:
+                error_msg = f"获取视频结果失败: {rsp.message if hasattr(rsp, 'message') else '未知错误'}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": rsp.status_code,
+                    "response_detail": str(rsp)
+                }
+        except Exception as e:
+            error_msg = f"获取视频结果异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+    
+    def fetch_task_status(self, task_id):
+        """获取视频任务状态"""
+        logger.info(f"=== 查询视频任务状态 ===")
+        logger.info(f"任务ID: {task_id}")
+        
+        try:
+            # 直接使用HTTP请求调用阿里云API
+            import requests
+            
+            url = f"https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info(f"发送HTTP请求到: {url}")
+            logger.info(f"请求头: {headers}")
+            
+            response = requests.get(url, headers=headers, timeout=30)
+            
+            logger.info(f"HTTP响应状态码: {response.status_code}")
+            logger.info(f"HTTP响应内容: {response.text}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # 解析响应数据
+                output = result.get('output', {})
+                task_status = output.get('task_status', 'UNKNOWN')
+                video_url = output.get('video_url')
+                orig_prompt = output.get('orig_prompt')
+                actual_prompt = output.get('actual_prompt')
+                
+                # 获取使用统计信息
+                usage_info = {}
+                if 'usage' in result:
+                    usage = result['usage']
+                    usage_info = {
+                        'video_count': usage.get('video_count', 1),
+                        'video_duration': usage.get('video_duration', 5),
+                        'video_ratio': usage.get('video_ratio', '1920*1080')
+                    }
+                
+                logger.info(f"视频任务状态查询成功: {task_status}")
+                
+                return {
+                    "success": True,
+                    "task_status": task_status,
+                    "task_id": task_id,
+                    "video_url": video_url,
+                    "orig_prompt": orig_prompt,
+                    "actual_prompt": actual_prompt,
+                    "usage": usage_info
+                }
+            else:
+                error_msg = f"获取视频状态失败: HTTP {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": response.status_code
+                }
+        except Exception as e:
+            error_msg = f"获取视频状态异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+
+class ImageToVideoGenerator:
+    def __init__(self):
+        self.api_key = os.getenv("DASHSCOPE_API_KEY", "sk-bd2c58cc05844168bcf96bc07c2e81da")
+        logger.info(f"初始化ImageToVideoGenerator，API密钥: {self.api_key[:20]}...")
+        if not self.api_key:
+            raise ValueError("请设置环境变量 DASHSCOPE_API_KEY")
+    
+    def create_async_task(self, prompt, image_base64, size="1920*1080"):
+        """创建异步图片转视频任务"""
+        logger.info(f"=== 开始创建图片转视频异步任务 ===")
+        logger.info(f"提示词: {prompt}")
+        logger.info(f"尺寸: {size}")
+        logger.info(f"图片数据长度: {len(image_base64) if image_base64 else 0} 字符")
+        logger.info(f"API密钥: {self.api_key[:20]}...")
+        
+        try:
+            # 确保图片是base64格式
+            if not image_base64.startswith('data:image/'):
+                # 如果没有data URI前缀，假设是纯base64，添加PNG前缀
+                img_url = f"data:image/png;base64,{image_base64}"
+            else:
+                img_url = image_base64
+            
+            logger.info("调用 VideoSynthesis.async_call for image to video")
+            rsp = VideoSynthesis.async_call(
+                api_key=self.api_key,
+                model="wan2.2-i2v-plus",
+                prompt=prompt,
+                resolution="1080P",  # 注意：image to video使用resolution而不是size
+                img_url=img_url
+            )
+            
+            logger.info(f"API响应状态码: {rsp.status_code}")
+            logger.info(f"API响应完整内容: {rsp}")
+            
+            if hasattr(rsp, 'output'):
+                logger.info(f"响应输出: {rsp.output}")
+            if hasattr(rsp, 'message'):
+                logger.info(f"响应消息: {rsp.message}")
+            if hasattr(rsp, 'code'):
+                logger.info(f"响应代码: {rsp.code}")
+            
+            if rsp.status_code == HTTPStatus.OK:
+                task_id = rsp.output.task_id if hasattr(rsp.output, 'task_id') else None
+                task_status = rsp.output.task_status if hasattr(rsp.output, 'task_status') else None
+                
+                logger.info(f"图片转视频任务创建成功 - 任务ID: {task_id}, 状态: {task_status}")
+                
+                return {
+                    "success": True,
+                    "task_id": task_id,
+                    "task_status": task_status,
+                    "task_object": rsp,  # 返回完整的响应对象
+                    "message": "图片转视频任务创建成功"
+                }
+            else:
+                error_msg = f"创建图片转视频任务失败: {rsp.message if hasattr(rsp, 'message') else '未知错误'}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": rsp.status_code,
+                    "response_detail": str(rsp)
+                }
+        except Exception as e:
+            error_msg = f"创建图片转视频任务异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+    
+    def wait_and_get_result(self, task_result):
+        """等待图片转视频任务完成并获取结果"""
+        logger.info(f"=== 开始等待图片转视频任务完成 ===")
+        
+        try:
+            # 使用原始的task对象，而不是重新构造
+            task_object = task_result.get("task_object")
+            if not task_object:
+                logger.error("没有找到有效的task对象")
+                return {
+                    "success": False,
+                    "error": "没有找到有效的task对象"
+                }
+            
+            logger.info(f"使用task对象等待图片转视频结果: {task_object}")
+            logger.info("调用 VideoSynthesis.wait")
+            logger.info(f"传递API密钥: {self.api_key[:20]}...")
+            
+            rsp = VideoSynthesis.wait(task_object, api_key=self.api_key)
+            
+            logger.info(f"等待图片转视频结果响应状态码: {rsp.status_code}")
+            logger.info(f"等待图片转视频结果响应完整内容: {rsp}")
+            
+            if rsp.status_code == HTTPStatus.OK:
+                logger.info("图片转视频任务完成成功，开始处理结果")
+                
+                video_url = rsp.output.video_url if hasattr(rsp.output, 'video_url') else None
+                task_status = rsp.output.task_status if hasattr(rsp.output, 'task_status') else 'UNKNOWN'
+                orig_prompt = rsp.output.orig_prompt if hasattr(rsp.output, 'orig_prompt') else None
+                actual_prompt = rsp.output.actual_prompt if hasattr(rsp.output, 'actual_prompt') else None
+                
+                # 获取使用统计信息
+                usage_info = {}
+                if hasattr(rsp, 'usage') and rsp.usage:
+                    usage_info = {
+                        'video_count': rsp.usage.video_count if hasattr(rsp.usage, 'video_count') else 1,
+                        'video_duration': rsp.usage.video_duration if hasattr(rsp.usage, 'video_duration') else 5,
+                        'video_ratio': rsp.usage.video_ratio if hasattr(rsp.usage, 'video_ratio') else '1920*1080'
+                    }
+                
+                logger.info(f"最终图片转视频任务状态: {task_status}")
+                logger.info(f"视频URL: {video_url}")
+                
+                return {
+                    "success": True,
+                    "video_url": video_url,
+                    "task_status": task_status,
+                    "orig_prompt": orig_prompt,
+                    "actual_prompt": actual_prompt,
+                    "usage": usage_info
+                }
+            else:
+                error_msg = f"获取图片转视频结果失败: {rsp.message if hasattr(rsp, 'message') else '未知错误'}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": rsp.status_code,
+                    "response_detail": str(rsp)
+                }
+        except Exception as e:
+            error_msg = f"获取图片转视频结果异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+    
+    def fetch_task_status(self, task_id):
+        """获取图片转视频任务状态"""
+        logger.info(f"=== 查询图片转视频任务状态 ===")
+        logger.info(f"任务ID: {task_id}")
+        
+        try:
+            # 直接使用HTTP请求调用阿里云API
+            import requests
+            
+            url = "https://dashscope.aliyuncs.com/api/v1/tasks/{}".format(task_id)
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info(f"请求URL: {url}")
+            logger.info(f"请求头: {headers}")
+            
+            response = requests.get(url, headers=headers)
+            
+            logger.info(f"响应状态码: {response.status_code}")
+            logger.info(f"响应内容: {response.text}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                output = result.get('output', {})
+                
+                task_status = output.get('task_status', 'UNKNOWN')
+                video_url = output.get('video_url', '')
+                orig_prompt = output.get('orig_prompt', '')
+                actual_prompt = output.get('actual_prompt', '')
+                
+                # 使用信息
+                usage = result.get('usage', {})
+                usage_info = {
+                    'video_count': usage.get('video_count', 1),
+                    'video_duration': usage.get('video_duration', 5),
+                    'video_ratio': usage.get('video_ratio', '1920*1080')
+                }
+                
+                logger.info(f"图片转视频任务状态查询成功: {task_status}")
+                
+                return {
+                    "success": True,
+                    "task_status": task_status,
+                    "task_id": task_id,
+                    "video_url": video_url,
+                    "orig_prompt": orig_prompt,
+                    "actual_prompt": actual_prompt,
+                    "usage": usage_info
+                }
+            else:
+                error_msg = f"获取图片转视频状态失败: HTTP {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "status_code": response.status_code
+                }
+        except Exception as e:
+            error_msg = f"获取图片转视频状态异常: {str(e)}"
+            logger.error(error_msg)
+            logger.exception("详细异常信息:")
+            return {
+                "success": False,
+                "error": error_msg,
+                "exception_type": type(e).__name__
+            }
+
+# 全局生成器实例
 generator = None
+video_generator = None
+image_to_video_generator = None
 
 try:
     logger.info("=== 初始化应用 ===")
     generator = ImageGenerator()
     logger.info("ImageGenerator 初始化成功")
+    
+    video_generator = VideoGenerator()
+    logger.info("VideoGenerator 初始化成功")
+    
+    image_to_video_generator = ImageToVideoGenerator()
+    logger.info("ImageToVideoGenerator 初始化成功")
 except ValueError as e:
-    logger.error(f"ImageGenerator 初始化失败: {e}")
+    logger.error(f"生成器初始化失败: {e}")
     generator = None
+    video_generator = None
 
 # 用户认证API路由
 @app.route('/api/send-verification-code', methods=['POST'])
@@ -1284,7 +1979,7 @@ def delete_conversation(conversation_id):
 @app.route('/api/conversations/<int:conversation_id>/history', methods=['GET'])
 @jwt_required()
 def get_conversation_history(conversation_id):
-    """获取会话的图片历史"""
+    """获取会话的图片和视频历史"""
     try:
         current_user_id = int(get_jwt_identity())
         
@@ -1327,6 +2022,595 @@ def not_found(e):
         "error": "接口不存在"
     }), 404
 
+# ===== 视频生成API接口 =====
+
+@app.route('/api/generate-video', methods=['POST'])
+@jwt_required()
+def generate_video():
+    """视频生成接口"""
+    try:
+        if not video_generator:
+            logger.error("VideoGenerator 未初始化")
+            return jsonify({
+                "success": False,
+                "error": "视频生成服务未初始化"
+            }), 500
+        
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        if not data or not data.get('prompt'):
+            return jsonify({
+                "success": False,
+                "error": "缺少必要参数: prompt"
+            }), 400
+        
+        prompt = data.get('prompt', '').strip()
+        size = data.get('size', '1920*1080')
+        conversation_id = data.get('conversation_id')
+        
+        if not prompt:
+            return jsonify({
+                "success": False,
+                "error": "提示词不能为空"
+            }), 400
+        
+        # 检查试用次数
+        trial_result = user_db.use_trial(current_user_id, 'video_generation')
+        if not trial_result['success']:
+            return jsonify({
+                "success": False,
+                "error": "试用次数不足",
+                "remaining_trials": 0
+            }), 403
+        
+        logger.info(f"用户 {current_user_id} 开始视频生成 - 提示词: {prompt[:50]}...")
+        
+        # 创建视频生成任务
+        task_result = video_generator.create_async_task(prompt, size)
+        
+        if not task_result['success']:
+            # 如果任务创建失败，恢复试用次数（可选实现）
+            logger.error(f"视频任务创建失败: {task_result.get('error')}")
+            return jsonify({
+                "success": False,
+                "error": task_result.get('error', '视频任务创建失败'),
+                "remaining_trials": trial_result['remaining_trials']
+            }), 500
+        
+        logger.info(f"视频任务创建成功 - 任务ID: {task_result['task_id']}")
+        
+        # 存储任务ID到会话ID的映射
+        if conversation_id:
+            task_conversation_mapping[task_result['task_id']] = conversation_id
+            logger.debug(f"存储任务映射: {task_result['task_id']} -> {conversation_id}")
+        
+        return jsonify({
+            "success": True,
+            "task_id": task_result['task_id'],
+            "task_status": task_result['task_status'],
+            "message": "视频生成任务已创建，请使用 /api/video-status/{task_id} 查询进度",
+            "remaining_trials": trial_result['remaining_trials'],
+            "is_admin": trial_result['is_admin'],
+            "conversation_id": conversation_id
+        })
+        
+    except ValueError as e:
+        logger.warning(f"视频生成参数错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"视频生成异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "视频生成失败"
+        }), 500
+
+@app.route('/api/video-status/<task_id>', methods=['GET'])
+@jwt_required()
+def get_video_status(task_id):
+    """获取视频生成任务状态"""
+    try:
+        if not video_generator:
+            logger.error("VideoGenerator 未初始化")
+            return jsonify({
+                "success": False,
+                "error": "视频生成服务未初始化"
+            }), 500
+        
+        current_user_id = int(get_jwt_identity())
+        
+        if not task_id:
+            return jsonify({
+                "success": False,
+                "error": "缺少任务ID"
+            }), 400
+        
+        logger.info(f"用户 {current_user_id} 查询视频任务状态: {task_id}")
+        
+        # 获取任务状态
+        status_result = video_generator.fetch_task_status(task_id)
+        
+        if not status_result['success']:
+            logger.error(f"获取视频任务状态失败: {status_result.get('error')}")
+            return jsonify({
+                "success": False,
+                "error": status_result.get('error', '获取任务状态失败')
+            }), 500
+        
+        # 如果任务已完成，返回完整结果
+        if status_result['task_status'] == 'SUCCEEDED':
+            logger.info(f"视频任务 {task_id} 已完成")
+            
+            # 自动保存到数据库
+            try:
+                # 从请求或session中获取conversation_id（这里需要改进）
+                # 暂时可以从视频历史记录中查找是否已存在
+                video_url = status_result.get('video_url')
+                orig_prompt = status_result.get('orig_prompt', '')
+                actual_prompt = status_result.get('actual_prompt', '')
+                usage_info = status_result.get('usage', {})
+                
+                # 检查是否已经保存过
+                connection = user_db.get_connection()
+                cursor = connection.cursor(dictionary=True)
+                cursor.execute("""
+                    SELECT id FROM video_history 
+                    WHERE user_id = %s AND task_id = %s
+                """, (current_user_id, task_id))
+                
+                existing_record = cursor.fetchone()
+                
+                if not existing_record and video_url:
+                    # 获取conversation_id：首先从映射中获取，然后从最近会话获取，最后创建新会话
+                    target_conversation_id = task_conversation_mapping.get(task_id)
+                    
+                    if not target_conversation_id:
+                        # 从最近的会话获取
+                        cursor.execute("""
+                            SELECT id FROM conversations 
+                            WHERE user_id = %s 
+                            ORDER BY created_at DESC 
+                            LIMIT 1
+                        """, (current_user_id,))
+                        
+                        recent_conversation = cursor.fetchone()
+                        
+                        if recent_conversation:
+                            target_conversation_id = recent_conversation['id']
+                        else:
+                            # 创建新会话
+                            cursor.execute("""
+                                INSERT INTO conversations (user_id, title, created_at)
+                                VALUES (%s, %s, NOW())
+                            """, (current_user_id, f"Video Generation - {datetime.now().strftime('%Y-%m-%d %H:%M')}"))
+                            target_conversation_id = cursor.lastrowid
+                    
+                    # 如果没有保存过且有视频URL，则保存（包含所有必需字段）
+                    cursor.execute("""
+                        INSERT INTO video_history 
+                        (conversation_id, user_id, prompt, video_url, size, duration, orig_prompt, actual_prompt, usage_info, task_id, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    """, (
+                        target_conversation_id,
+                        current_user_id,
+                        orig_prompt or actual_prompt or 'Video generation',  # prompt字段必需
+                        video_url,
+                        '1920*1080',  # 默认尺寸
+                        5,  # 默认时长
+                        orig_prompt,
+                        actual_prompt,
+                        json.dumps(usage_info) if usage_info else None,
+                        task_id
+                    ))
+                    connection.commit()
+                    logger.info(f"视频记录已自动保存到数据库 - 任务ID: {task_id}, 会话ID: {target_conversation_id}")
+                    
+                    # 清理映射（任务完成后不再需要）
+                    if task_id in task_conversation_mapping:
+                        del task_conversation_mapping[task_id]
+                    logger.info(f"视频记录已自动保存到数据库 - 任务ID: {task_id}")
+                
+                cursor.close()
+                connection.close()
+                
+            except Exception as save_error:
+                logger.error(f"自动保存视频记录失败: {str(save_error)}")
+                # 不影响状态查询的返回，只记录错误
+            
+            return jsonify({
+                "success": True,
+                "task_id": task_id,
+                "task_status": status_result['task_status'],
+                "video_url": status_result.get('video_url'),
+                "orig_prompt": status_result.get('orig_prompt'),
+                "actual_prompt": status_result.get('actual_prompt'),
+                "usage": status_result.get('usage', {}),
+                "message": "视频生成完成"
+            })
+        elif status_result['task_status'] in ['FAILED', 'ERROR']:
+            logger.error(f"视频任务 {task_id} 失败")
+            
+            # 清理映射（任务失败后不再需要）
+            if task_id in task_conversation_mapping:
+                del task_conversation_mapping[task_id]
+                
+            return jsonify({
+                "success": False,
+                "task_id": task_id,
+                "task_status": status_result['task_status'],
+                "error": "视频生成失败"
+            }), 500
+        else:
+            # 任务进行中
+            logger.info(f"视频任务 {task_id} 进行中，状态: {status_result['task_status']}")
+            return jsonify({
+                "success": True,
+                "task_id": task_id,
+                "task_status": status_result['task_status'],
+                "message": "视频生成中，请稍候..."
+            })
+            
+    except Exception as e:
+        logger.error(f"获取视频状态异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "获取任务状态失败"
+        }), 500
+
+@app.route('/api/save-video', methods=['POST'])
+@jwt_required()
+def save_video():
+    """保存视频到会话历史"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        if not data or not data.get('conversation_id') or not data.get('prompt') or not data.get('video_url'):
+            return jsonify({
+                "success": False,
+                "error": "缺少必要参数: conversation_id, prompt, video_url"
+            }), 400
+        
+        conversation_id = data.get('conversation_id')
+        prompt = data.get('prompt')
+        video_url = data.get('video_url')
+        size = data.get('size', '1920*1080')
+        duration = data.get('duration', 5)
+        
+        # 新增字段
+        orig_prompt = data.get('orig_prompt')
+        actual_prompt = data.get('actual_prompt')
+        usage_info = data.get('usage')
+        task_id = data.get('task_id')
+        
+        logger.info(f"用户 {current_user_id} 保存视频历史 - 会话: {conversation_id}, 任务: {task_id}")
+        
+        # 保存视频历史
+        history_id = user_db.save_video_history(
+            conversation_id=conversation_id,
+            user_id=current_user_id,
+            prompt=prompt,
+            video_url=video_url,
+            size=size,
+            duration=duration,
+            orig_prompt=orig_prompt,
+            actual_prompt=actual_prompt,
+            usage_info=usage_info,
+            task_id=task_id
+        )
+        
+        return jsonify({
+            "success": True,
+            "history_id": history_id,
+            "message": "视频历史保存成功"
+        })
+        
+    except ValueError as e:
+        logger.warning(f"保存视频历史参数错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"保存视频历史异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "保存视频历史失败"
+        }), 500
+
+@app.route('/api/generate-image-to-video', methods=['POST'])
+@jwt_required()
+def generate_image_to_video():
+    """图片转视频生成接口"""
+    try:
+        if not image_to_video_generator:
+            logger.error("ImageToVideoGenerator 未初始化")
+            return jsonify({
+                "success": False,
+                "error": "图片转视频生成服务未初始化"
+            }), 500
+        
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        if not data or not data.get('prompt') or not data.get('image_base64'):
+            return jsonify({
+                "success": False,
+                "error": "缺少必要参数: prompt, image_base64"
+            }), 400
+        
+        prompt = data.get('prompt', '').strip()
+        image_base64 = data.get('image_base64', '').strip()
+        size = data.get('size', '1920*1080')
+        conversation_id = data.get('conversation_id')
+        
+        if not prompt:
+            return jsonify({
+                "success": False,
+                "error": "提示词不能为空"
+            }), 400
+        
+        if not image_base64:
+            return jsonify({
+                "success": False,
+                "error": "图片数据不能为空"
+            }), 400
+        
+        # 检查试用次数
+        trial_result = user_db.use_trial(current_user_id, 'video_generation')
+        if not trial_result['success']:
+            return jsonify({
+                "success": False,
+                "error": "试用次数不足",
+                "remaining_trials": 0
+            }), 403
+        
+        logger.info(f"用户 {current_user_id} 开始图片转视频生成 - 提示词: {prompt[:50]}...")
+        
+        # 创建图片转视频生成任务
+        task_result = image_to_video_generator.create_async_task(prompt, image_base64, size)
+        
+        if not task_result['success']:
+            # 如果任务创建失败，恢复试用次数（可选实现）
+            logger.error(f"图片转视频任务创建失败: {task_result.get('error')}")
+            return jsonify({
+                "success": False,
+                "error": task_result.get('error', '图片转视频任务创建失败'),
+                "remaining_trials": trial_result['remaining_trials']
+            }), 500
+        
+        logger.info(f"图片转视频任务创建成功 - 任务ID: {task_result['task_id']}")
+        
+        # 存储任务ID到会话ID的映射
+        if conversation_id:
+            task_conversation_mapping[task_result['task_id']] = conversation_id
+            logger.debug(f"存储图片转视频任务映射: {task_result['task_id']} -> {conversation_id}")
+        
+        # 存储完整的任务信息，用于任务完成时保存历史记录
+        image_to_video_task_mapping[task_result['task_id']] = {
+            'user_id': current_user_id,
+            'conversation_id': conversation_id,
+            'prompt': prompt,
+            'image_base64': image_base64,
+            'size': size,
+            'submit_time': datetime.now().isoformat()
+        }
+        logger.debug(f"存储图片转视频任务详细信息: {task_result['task_id']}")
+        
+        return jsonify({
+            "success": True,
+            "task_id": task_result['task_id'],
+            "task_status": task_result['task_status'],
+            "message": "图片转视频生成任务已创建，请使用 /api/image-to-video-status/{task_id} 查询进度",
+            "remaining_trials": trial_result['remaining_trials'],
+            "is_admin": trial_result['is_admin'],
+            "conversation_id": conversation_id
+        })
+        
+    except ValueError as e:
+        logger.warning(f"图片转视频生成参数错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"图片转视频生成异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "图片转视频生成失败"
+        }), 500
+
+@app.route('/api/image-to-video-status/<task_id>', methods=['GET'])
+@jwt_required()
+def get_image_to_video_status(task_id):
+    """获取图片转视频生成任务状态"""
+    try:
+        if not image_to_video_generator:
+            logger.error("ImageToVideoGenerator 未初始化")
+            return jsonify({
+                "success": False,
+                "error": "图片转视频生成服务未初始化"
+            }), 500
+        
+        current_user_id = int(get_jwt_identity())
+        
+        logger.info(f"用户 {current_user_id} 查询图片转视频任务状态 - 任务ID: {task_id}")
+        
+        # 获取任务状态
+        status_result = image_to_video_generator.fetch_task_status(task_id)
+        
+        if not status_result['success']:
+            logger.error(f"获取图片转视频任务状态失败: {status_result.get('error')}")
+            return jsonify({
+                "success": False,
+                "error": status_result.get('error', '获取任务状态失败')
+            }), 500
+        
+        task_status = status_result['task_status']
+        video_url = status_result.get('video_url', '')
+        
+        logger.info(f"图片转视频任务状态: {task_status}, 视频URL: {video_url}")
+        
+        response_data = {
+            "success": True,
+            "task_id": task_id,
+            "task_status": task_status,
+            "video_url": video_url
+        }
+        
+        # 如果任务完成，包含额外信息
+        if task_status == 'SUCCEEDED' and video_url:
+            response_data.update({
+                "orig_prompt": status_result.get('orig_prompt', ''),
+                "actual_prompt": status_result.get('actual_prompt', ''),
+                "usage": status_result.get('usage', {})
+            })
+            
+            # 自动保存到历史记录
+            task_info = image_to_video_task_mapping.get(task_id)
+            if task_info:
+                try:
+                    # 保存到image_to_video_history表
+                    history_id = user_db.save_image_to_video_history(
+                        conversation_id=task_info['conversation_id'],
+                        user_id=task_info['user_id'],
+                        prompt=task_info['prompt'],
+                        image_base64=task_info['image_base64'],
+                        video_url=video_url,
+                        size=task_info['size'],
+                        duration=status_result.get('usage', {}).get('video_duration', 5),
+                        orig_prompt=status_result.get('orig_prompt', ''),
+                        actual_prompt=status_result.get('actual_prompt', ''),
+                        usage_info=status_result.get('usage', {}),
+                        task_id=task_id
+                    )
+                    
+                    logger.info(f"图片转视频历史记录保存成功，记录ID: {history_id}")
+                    
+                    # 清理临时存储的任务信息
+                    del image_to_video_task_mapping[task_id]
+                    
+                except Exception as save_error:
+                    logger.error(f"自动保存图片转视频历史失败: {save_error}")
+            else:
+                logger.warning(f"未找到任务 {task_id} 的详细信息，无法保存历史记录")
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"获取图片转视频任务状态异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "获取任务状态失败"
+        }), 500
+
+@app.route('/api/save-image-to-video', methods=['POST'])
+@jwt_required()
+def save_image_to_video():
+    """保存图片转视频到会话历史"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        if not data or not data.get('conversation_id') or not data.get('prompt') or not data.get('video_url') or not data.get('image_base64'):
+            return jsonify({
+                "success": False,
+                "error": "缺少必要参数: conversation_id, prompt, video_url, image_base64"
+            }), 400
+        
+        conversation_id = data.get('conversation_id')
+        prompt = data.get('prompt')
+        image_base64 = data.get('image_base64')
+        video_url = data.get('video_url')
+        size = data.get('size', '1920*1080')
+        duration = data.get('duration', 5)
+        
+        # 新增字段
+        orig_prompt = data.get('orig_prompt')
+        actual_prompt = data.get('actual_prompt')
+        usage_info = data.get('usage')
+        task_id = data.get('task_id')
+        
+        logger.info(f"用户 {current_user_id} 保存图片转视频历史 - 会话: {conversation_id}, 任务: {task_id}")
+        
+        # 保存图片转视频历史
+        history_id = user_db.save_image_to_video_history(
+            conversation_id=conversation_id,
+            user_id=current_user_id,
+            prompt=prompt,
+            image_base64=image_base64,
+            video_url=video_url,
+            size=size,
+            duration=duration,
+            orig_prompt=orig_prompt,
+            actual_prompt=actual_prompt,
+            usage_info=usage_info,
+            task_id=task_id
+        )
+        
+        return jsonify({
+            "success": True,
+            "history_id": history_id,
+            "message": "图片转视频历史保存成功"
+        })
+        
+    except ValueError as e:
+        logger.warning(f"保存图片转视频历史参数错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"保存图片转视频历史异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "保存图片转视频历史失败"
+        }), 500
+
+@app.route('/api/conversation/<int:conversation_id>/video-history', methods=['GET'])
+@jwt_required()
+def get_conversation_video_history(conversation_id):
+    """获取会话的视频历史记录"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        # 获取查询参数
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        # 限制查询数量
+        limit = min(limit, 100)
+        
+        logger.info(f"用户 {current_user_id} 获取会话视频历史 - 会话: {conversation_id}")
+        
+        # 获取视频历史
+        history = user_db.get_conversation_video_history(conversation_id, current_user_id, limit, offset)
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "history": history,
+            "total_returned": len(history),
+            "limit": limit,
+            "offset": offset
+        })
+        
+    except ValueError as e:
+        logger.warning(f"获取视频历史参数错误: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"获取视频历史异常: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "获取视频历史失败"
+        }), 500
+
 if __name__ == '__main__':
     logger.info("=== 启动AI文字作画API服务器 ===")
     logger.info(f"监听地址: {API_HOST}:{API_PORT}")
@@ -1346,7 +2630,13 @@ if __name__ == '__main__':
     logger.info("  GET  /api/user/check-trial - 检查试用状态")
     logger.info("  POST /api/user/use-trial - 使用试用次数")
     logger.info("  POST /api/generate - 生成图片")
+    logger.info("  POST /api/generate-video - 生成视频")
+    logger.info("  POST /api/generate-image-to-video - 图片转视频")
     logger.info("  GET  /api/status/<task_id> - 获取任务状态")
+    logger.info("  GET  /api/video-status/<task_id> - 获取视频任务状态")
+    logger.info("  GET  /api/image-to-video-status/<task_id> - 获取图片转视频任务状态")
+    logger.info("  POST /api/save-video - 保存视频历史")
+    logger.info("  POST /api/save-image-to-video - 保存图片转视频历史")
     logger.info("  GET  /api/ratios - 获取支持的比例")
     logger.info("  GET  /api/health - 健康检查")
     logger.info("日志文件: api_server.log")

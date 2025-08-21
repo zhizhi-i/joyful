@@ -129,6 +129,26 @@
                 <div class="generator-input-section">
                     <div class="prompt-container" id="promptContainer">
                         <div class="input-wrapper">
+                            <!-- Image Upload for Image to Video (在输入框左上角) -->
+                            <div class="image-upload-section" id="imageUploadGroup" style="display: none;">
+                                <div class="image-upload-area">
+                                    <div class="upload-placeholder" id="uploadPlaceholder">
+                                        <i class="fas fa-plus"></i>
+                                        <span>Add Image</span>
+                                    </div>
+                                    <div class="uploaded-image" id="uploadedImagePreview" style="display: none;">
+                                        <img id="previewImage" src="" alt="Uploaded image">
+                                        <button class="remove-image-btn" id="removeImageBtn">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
+                                </div>
+                                <div class="upload-hint">
+                                    <span>Upload an image to generate video from</span>
+                                </div>
+                            </div>
+                            
                             <textarea 
                                 id="prompt-input" 
                                 placeholder="Describe what to generate: subjects, scene, style, lighting, details"
@@ -147,12 +167,10 @@
                                     </div>
                                     <div class="selector-dropdown" id="contentTypeDropdown">
                                         <div class="dropdown-option active" data-value="image">
-                                            <span class="option-icon">🖼️</span>
                                             <span>Image</span>
                                             <i class="fas fa-check"></i>
                                         </div>
                                         <div class="dropdown-option" data-value="video">
-                                            <span class="option-icon">🎬</span>
                                             <span>Video</span>
                                             <i class="fas fa-check" style="display: none;"></i>
                                         </div>
@@ -241,18 +259,40 @@
                                             <span class="selector-icon">
                                                 <i class="fas fa-photo-video"></i>
                                             </span>
-                                            <span class="selector-text">Image to Video</span>
+                                            <span class="selector-text">Text to Video</span>
                                             <i class="fas fa-chevron-up"></i>
                                         </div>
                                         <div class="selector-dropdown" id="videoTypeDropdown">
-                                            <div class="dropdown-option active" data-value="image-to-video">
-                                                <span class="option-icon">🖼️➡️🎬</span>
-                                                <span>Image to Video</span>
+                                            <div class="dropdown-option active" data-value="text-to-video">
+                                                <span>Text to Video</span>
                                                 <i class="fas fa-check"></i>
                                             </div>
-                                            <div class="dropdown-option" data-value="text-to-video">
-                                                <span class="option-icon">📝➡️🎬</span>
-                                                <span>Text to Video</span>
+                                            <div class="dropdown-option" data-value="image-to-video">
+                                                <span>Image to Video</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Video Resolution Selection -->
+                                    <div class="control-group">
+                                        <div class="selector-button" id="videoResolutionSelector">
+                                            <span class="selector-icon">
+                                                <i class="fas fa-tv"></i>
+                                            </span>
+                                            <span class="selector-text">1080P</span>
+                                            <i class="fas fa-chevron-up"></i>
+                                        </div>
+                                        <div class="selector-dropdown" id="videoResolutionDropdown">
+                                            <div class="dropdown-option active" data-value="1920*1080">
+                                                <span>1080P</span>
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="1280*720">
+                                                <span>720P</span>
+                                                <i class="fas fa-check" style="display: none;"></i>
+                                            </div>
+                                            <div class="dropdown-option" data-value="832*480">
+                                                <span>480P</span>
                                                 <i class="fas fa-check" style="display: none;"></i>
                                             </div>
                                         </div>

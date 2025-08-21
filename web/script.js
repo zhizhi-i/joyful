@@ -14,6 +14,8 @@ const imageCountSelector = document.getElementById('imageCountSelector');
 const imageCountDropdown = document.getElementById('imageCountDropdown');
 const videoTypeSelector = document.getElementById('videoTypeSelector');
 const videoTypeDropdown = document.getElementById('videoTypeDropdown');
+const videoResolutionSelector = document.getElementById('videoResolutionSelector');
+const videoResolutionDropdown = document.getElementById('videoResolutionDropdown');
 const imageControls = document.getElementById('imageControls');
 const videoControls = document.getElementById('videoControls');
 
@@ -28,10 +30,15 @@ const navItems = document.querySelectorAll('.nav-item');
 let selectedContentType = 'image'; // 'image' or 'video'
 let selectedRatio = '1:1';
 let selectedImageCount = 1;
-let selectedVideoType = 'image-to-video'; // 'image-to-video' or 'text-to-video'
+let selectedVideoType = 'text-to-video'; // 'text-to-video' or 'image-to-video'
+let selectedVideoResolution = '1920*1080'; // '1920*1080', '1280*720', '832*480'
 let isGenerating = false;
 let currentProgress = 0;
 let userTrialStatus = null;
+
+// Image upload state
+let uploadedImageData = null; // Store base64 image data
+let uploadedImageFile = null; // Store original file
 
 // 会话管理状态
 let conversations = [];
@@ -50,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAspectRatioDisplay(selectedRatio); // Initialize aspect ratio display
     updateImageCountDisplay(selectedImageCount); // Initialize image count display
     updateVideoTypeDisplay(selectedVideoType); // Initialize video type display
+    updateVideoResolutionDisplay(selectedVideoResolution); // Initialize video resolution display
     checkAPIHealth();
     initUserSystem();
 });
@@ -222,6 +230,9 @@ function initEventListeners() {
     if (newConversationBtn) {
         newConversationBtn.addEventListener('click', handleNewConversation);
     }
+    
+    // Initialize image upload events
+    initImageUploadEvents();
 }
 
 // Handle prompt input changes
@@ -263,6 +274,14 @@ function initSelectorEvents() {
         initSelectorDropdown(videoTypeSelector, videoTypeDropdown, (value) => {
             selectedVideoType = value;
             updateVideoTypeDisplay(value);
+        });
+    }
+    
+    // Video resolution selector
+    if (videoResolutionSelector && videoResolutionDropdown) {
+        initSelectorDropdown(videoResolutionSelector, videoResolutionDropdown, (value) => {
+            selectedVideoResolution = value;
+            updateVideoResolutionDisplay(value);
         });
     }
 }
@@ -407,8 +426,118 @@ function updateImageCountDisplay(count) {
 
 // Update video type display
 function updateVideoTypeDisplay(type) {
+    console.log('=== 更新视频类型显示 ===');
+    console.log('视频类型:', type);
+    
     const text = type === 'image-to-video' ? 'Image to Video' : 'Text to Video';
     videoTypeSelector.querySelector('.selector-text').textContent = text;
+    
+    // Show/hide image upload area based on video type
+    const imageUploadGroup = document.getElementById('imageUploadGroup');
+    if (imageUploadGroup) {
+        if (type === 'image-to-video') {
+            console.log('显示图片上传区域');
+            imageUploadGroup.style.display = 'block';
+        } else {
+            console.log('隐藏图片上传区域');
+            imageUploadGroup.style.display = 'none';
+            // Clear uploaded image when switching away from image-to-video
+            clearUploadedImage();
+        }
+    } else {
+        console.warn('未找到图片上传区域元素');
+    }
+    
+    console.log('视频类型显示更新完成');
+}
+
+// Update video resolution display
+function updateVideoResolutionDisplay(resolution) {
+    const resolutionMap = {
+        '1920*1080': '1080P',
+        '1280*720': '720P',
+        '832*480': '480P'
+    };
+    const text = resolutionMap[resolution] || '1080P';
+    videoResolutionSelector.querySelector('.selector-text').textContent = text;
+}
+
+// Image upload functionality
+function initImageUploadEvents() {
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    const removeImageBtn = document.getElementById('removeImageBtn');
+    
+    if (uploadPlaceholder && imageUploadInput) {
+        // Click to upload
+        uploadPlaceholder.addEventListener('click', () => {
+            imageUploadInput.click();
+        });
+        
+        // Handle file selection
+        imageUploadInput.addEventListener('change', handleImageUpload);
+    }
+    
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', clearUploadedImage);
+    }
+}
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file.');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        alert('Image file size should be less than 10MB.');
+        return;
+    }
+    
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        uploadedImageData = e.target.result;
+        uploadedImageFile = file;
+        displayUploadedImage(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+function displayUploadedImage(imageSrc) {
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const uploadedImagePreview = document.getElementById('uploadedImagePreview');
+    const previewImage = document.getElementById('previewImage');
+    
+    if (uploadPlaceholder && uploadedImagePreview && previewImage) {
+        uploadPlaceholder.style.display = 'none';
+        uploadedImagePreview.style.display = 'flex';
+        previewImage.src = imageSrc;
+    }
+}
+
+function clearUploadedImage() {
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const uploadedImagePreview = document.getElementById('uploadedImagePreview');
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    
+    uploadedImageData = null;
+    uploadedImageFile = null;
+    
+    if (uploadPlaceholder && uploadedImagePreview) {
+        uploadPlaceholder.style.display = 'flex';
+        uploadedImagePreview.style.display = 'none';
+    }
+    
+    if (imageUploadInput) {
+        imageUploadInput.value = '';
+    }
 }
 
 // Handle keyboard shortcuts
@@ -492,8 +621,8 @@ async function handleGenerate() {
     isGenerating = true;
     currentProgress = 0;
     
-    // 创建图片占位符并显示进度
-    const placeholder = createImagePlaceholder(prompt);
+    // 创建占位符并显示进度
+    const placeholder = createContentPlaceholder(prompt, selectedContentType);
     
     // 只在第一次生成时隐藏占位符
     if (currentImages.children.length === 0) {
@@ -523,32 +652,78 @@ async function handleGenerate() {
         
         // Call appropriate API based on content type
         let result;
+        console.log('=== 接口选择调试信息 ===');
+        console.log('selectedContentType:', selectedContentType);
+        console.log('selectedVideoType:', selectedVideoType);
+        console.log('uploadedImageData存在:', !!uploadedImageData);
+        
         if (selectedContentType === 'image') {
+            console.log('调用图片生成API');
             result = await generateImageAPI();
+        } else if (selectedContentType === 'video' && selectedVideoType === 'image-to-video') {
+            console.log('调用图片转视频API');
+            // Validate that an image has been uploaded
+            if (!uploadedImageData) {
+                throw new Error('Please upload an image first for Image to Video generation');
+            }
+            result = await generateImageToVideoAPI();
+        } else if (selectedContentType === 'video') {
+            console.log('调用文本生成视频API');
+            result = await generateVideoAPI();
         } else {
-            // For now, show a message that video generation is not implemented
-            throw new Error('Video generation coming soon, stay tuned!');
+            console.log('不支持的内容类型');
+            // For now, show a message that this content type is not implemented
+            throw new Error('This content type is not yet supported!');
         }
         
-        if (result.success && result.images && result.images.length > 0) {
-            // 添加调试日志
-            console.log('=== 图片生成结果 ===');
-            console.log('结果对象:', result);
-            console.log('图片数量:', result.images.length);
-            console.log('图片数组:', result.images);
-            result.images.forEach((img, index) => {
-                console.log(`图片 ${index + 1}:`, {
-                    url: img.url,
-                    base64_length: img.base64 ? img.base64.length : 0,
-                    base64_preview: img.base64 ? img.base64.substring(0, 50) + '...' : 'null'
+        if (result.success) {
+            if (selectedContentType === 'image' && result.images && result.images.length > 0) {
+                // 处理图片生成结果
+                console.log('=== 图片生成结果 ===');
+                console.log('结果对象:', result);
+                console.log('图片数量:', result.images.length);
+                console.log('图片数组:', result.images);
+                result.images.forEach((img, index) => {
+                    console.log(`图片 ${index + 1}:`, {
+                        url: img.url,
+                        base64_length: img.base64 ? img.base64.length : 0,
+                        base64_preview: img.base64 ? img.base64.substring(0, 50) + '...' : 'null'
+                    });
                 });
-            });
-            
-            // 填充生成的图片到占位符位置
-            fillGeneratedImages(placeholder, result.images);
-            
-            const imageText = result.images.length === 1 ? 'image' : 'images';
-            showToast(`${result.images.length} ${imageText} generated successfully!`, 'success');
+                
+                // 填充生成的图片到占位符位置
+                fillGeneratedImages(placeholder, result.images);
+                
+                const imageText = result.images.length === 1 ? 'image' : 'images';
+                showToast(`${result.images.length} ${imageText} generated successfully!`, 'success');
+            } else if (selectedContentType === 'video' && result.videos && result.videos.length > 0) {
+                // 处理视频生成结果
+                console.log('=== 视频生成结果 ===');
+                console.log('结果对象:', result);
+                console.log('视频数量:', result.videos.length);
+                console.log('视频数组:', result.videos);
+                
+                // 填充生成的视频到占位符位置
+                fillGeneratedVideos(placeholder, result.videos);
+                
+                const videoText = result.videos.length === 1 ? 'video' : 'videos';
+                showToast(`${result.videos.length} ${videoText} generated successfully!`, 'success');
+            } else if (selectedVideoType === 'image-to-video' && result.video) {
+                // 处理Image-to-Video生成结果
+                console.log('=== Image-to-Video生成结果 ===');
+                console.log('结果对象:', result);
+                console.log('视频URL:', result.video);
+                
+                // 填充生成的视频到占位符位置
+                fillGeneratedVideos(placeholder, [{ url: result.video }]);
+                
+                showToast('Image-to-Video generated successfully!', 'success');
+                
+                // 清除上传的图片
+                clearUploadedImage();
+            } else {
+                throw new Error('No content generated');
+            }
             
             // Update user info display
             displayUserInfo();
@@ -637,6 +812,247 @@ async function generateImageAPI() {
     }
 }
 
+// Generate video using video API
+async function generateVideoAPI() {
+    const requestData = {
+        prompt: promptInput.value.trim(),
+        video_type: selectedVideoType,
+        size: selectedVideoResolution,  // 后端期望的是 size 参数
+        conversation_id: currentConversationId // 包含当前会话ID
+    };
+    
+    try {
+        const token = window.AuthUtils.getToken();
+        const response = await fetch(`${API_BASE_URL}/generate-video`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // 添加认证头
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const data = await response.json();
+        
+        // 添加详细的响应数据调试
+        console.log('=== Video API响应详细信息 ===');
+        console.log('响应状态:', response.status);
+        console.log('响应数据完整对象:', data);
+        console.log('data.success:', data.success);
+        console.log('data.task_id:', data.task_id);
+        console.log('data 的所有键:', Object.keys(data));
+        
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        // 如果视频生成任务创建成功，开始轮询状态
+        if (data.success && data.task_id) {
+            const videoResult = await pollVideoStatus(data.task_id);
+            
+            // 更新当前会话ID和试用次数信息
+            if (data.conversation_id) {
+                currentConversationId = data.conversation_id;
+            }
+            
+            // 更新试用次数显示
+            if (data.remaining_trials !== undefined) {
+                if (userTrialStatus) {
+                    userTrialStatus.remaining_trials = data.remaining_trials;
+                    displayUserInfo();
+                }
+            }
+            
+            return videoResult;
+        } else {
+            throw new Error(data.error || 'Failed to create video generation task');
+        }
+        
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Cannot connect to the backend server. Please ensure it is running on port 81.');
+        }
+        throw error;
+    }
+}
+
+// Generate Image-to-Video using Image-to-Video API
+async function generateImageToVideoAPI() {
+    const requestData = {
+        prompt: promptInput.value.trim(),
+        image_base64: uploadedImageData, // base64图像数据
+        conversation_id: currentConversationId
+    };
+    
+    console.log('=== Image-to-Video API请求数据 ===');
+    console.log('prompt:', requestData.prompt);
+    console.log('conversation_id:', requestData.conversation_id);
+    console.log('image_base64 前50字符:', requestData.image_base64 ? requestData.image_base64.substring(0, 50) : 'null');
+    console.log('image_base64 总长度:', requestData.image_base64 ? requestData.image_base64.length : 0);
+    console.log('uploadedImageData:', !!uploadedImageData);
+    
+    try {
+        const token = window.AuthUtils.getToken();
+        const response = await fetch(`${API_BASE_URL}/generate-image-to-video`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const data = await response.json();
+        
+        console.log('=== Image-to-Video API响应详细信息 ===');
+        console.log('响应状态:', response.status);
+        console.log('响应数据完整对象:', data);
+        console.log('data.success:', data.success);
+        console.log('data.task_id:', data.task_id);
+        console.log('data 的所有键:', Object.keys(data));
+        
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        // 如果Image-to-Video生成任务创建成功，开始轮询状态
+        if (data.success && data.task_id) {
+            const videoResult = await pollImageToVideoStatus(data.task_id);
+            
+            // 更新当前会话ID和试用次数信息
+            if (data.conversation_id) {
+                currentConversationId = data.conversation_id;
+            }
+            
+            // 更新试用次数显示
+            if (data.remaining_trials !== undefined) {
+                if (userTrialStatus) {
+                    userTrialStatus.remaining_trials = data.remaining_trials;
+                    displayUserInfo();
+                }
+            }
+            
+            return videoResult;
+        } else {
+            throw new Error(data.error || 'Failed to create Image-to-Video generation task');
+        }
+        
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Cannot connect to the backend server. Please ensure it is running on port 81.');
+        }
+        throw error;
+    }
+}
+
+// Poll Image-to-Video generation status
+async function pollVideoStatus(taskId) {
+    const maxAttempts = 15; // 最大尝试次数（约5分钟，15次 × 20秒）
+    const interval = 20000; // 20秒间隔
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const token = window.AuthUtils.getToken();
+            const response = await fetch(`${API_BASE_URL}/video-status/${taskId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            console.log(`轮询状态 (尝试 ${attempt + 1}):`, data);
+            console.log('任务状态:', data.task_status);
+            console.log('视频URL:', data.video_url);
+            
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            if (data.task_status === 'SUCCEEDED') {
+                // 视频生成成功，返回结果
+                return {
+                    success: true,
+                    videos: [{
+                        url: data.video_url,
+                        task_id: taskId
+                    }]
+                };
+            } else if (data.task_status === 'FAILED') {
+                throw new Error(data.message || 'Video generation failed');
+            } else if (data.task_status === 'RUNNING' || data.task_status === 'PENDING') {
+                // 继续等待
+                await new Promise(resolve => setTimeout(resolve, interval));
+                continue;
+            } else {
+                throw new Error(`Unknown status: ${data.task_status}`);
+            }
+        } catch (error) {
+            console.error(`轮询状态出错 (尝试 ${attempt + 1}):`, error);
+            if (attempt === maxAttempts - 1) {
+                throw error;
+            }
+            await new Promise(resolve => setTimeout(resolve, interval));
+        }
+    }
+    
+    throw new Error('Video generation timeout (5 minutes). Please try again later.');
+}
+
+// Poll Image-to-Video generation status
+async function pollImageToVideoStatus(taskId) {
+    const maxAttempts = 15; // 最大尝试次数（约5分钟，15次 × 20秒）
+    const interval = 20000; // 20秒间隔
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const token = window.AuthUtils.getToken();
+            const response = await fetch(`${API_BASE_URL}/image-to-video-status/${taskId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            console.log(`轮询Image-to-Video状态 (尝试 ${attempt + 1}):`, data);
+            console.log('任务状态:', data.task_status);
+            console.log('视频URL:', data.video_url);
+            
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            if (data.task_status === 'SUCCEEDED') {
+                // Image-to-Video生成成功，返回结果
+                return {
+                    success: true,
+                    video: data.video_url,
+                    task_id: taskId
+                };
+            } else if (data.task_status === 'FAILED') {
+                throw new Error(data.message || 'Image-to-Video generation failed');
+            } else if (data.task_status === 'RUNNING' || data.task_status === 'PENDING') {
+                // 继续等待
+                await new Promise(resolve => setTimeout(resolve, interval));
+                continue;
+            } else {
+                throw new Error(`Unknown status: ${data.task_status}`);
+            }
+        } catch (error) {
+            console.error(`轮询Image-to-Video状态出错 (尝试 ${attempt + 1}):`, error);
+            if (attempt === maxAttempts - 1) {
+                throw error;
+            }
+            await new Promise(resolve => setTimeout(resolve, interval));
+        }
+    }
+    
+    throw new Error('Image-to-Video generation timeout (5 minutes). Please try again later.');
+}
+
 // Update generate button appearance
 function updateGenerateButton() {
     if (isGenerating) {
@@ -649,6 +1065,11 @@ function updateGenerateButton() {
 // Simulate progress for better UX
 function simulateProgress() {
     if (!isGenerating) return;
+    
+    // 只有图片生成才模拟进度，视频生成不需要进度条
+    if (selectedContentType === 'video') {
+        return; // 视频生成不显示进度百分比
+    }
     
     // Simulate progress with some randomness
     const increment = Math.random() * 15 + 5; // 5-20% increments
@@ -710,6 +1131,60 @@ function viewImageFullSize(base64Data) {
     // Close modal on escape key
     const handleKeydown = (e) => {
         if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', handleKeydown);
+        }
+    };
+    document.addEventListener('keydown', handleKeydown);
+}
+
+// View video in full size modal
+function viewVideoFullSize(videoUrl) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        cursor: pointer;
+    `;
+    
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.controls = true;
+    video.autoplay = true;
+    video.style.cssText = `
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        cursor: default;
+    `;
+    
+    // Prevent closing modal when clicking on video
+    video.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    modal.appendChild(video);
+    document.body.appendChild(modal);
+    
+    // Close modal on click
+    modal.addEventListener('click', () => {
+        video.pause();
+        document.body.removeChild(modal);
+    });
+    
+    // Close modal on escape key
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            video.pause();
             document.body.removeChild(modal);
             document.removeEventListener('keydown', handleKeydown);
         }
@@ -803,6 +1278,45 @@ async function copyImageDataStandard(base64Data) {
     await navigator.clipboard.write([
         new ClipboardItem({ [mimeType]: blob })
     ]);
+}
+
+// Download video data
+function downloadVideoData(videoUrl, index = 0) {
+    try {
+        const link = document.createElement('a');
+        link.href = videoUrl;
+        link.download = `generated-video-${index + 1}-${Date.now()}.mp4`;
+        link.target = '_blank'; // 新窗口下载，避免页面跳转
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Video download started!', 'success');
+    } catch (error) {
+        console.error('Video download failed:', error);
+        showToast('Video download failed', 'error');
+    }
+}
+
+// Copy video URL to clipboard
+async function copyVideoData(videoUrl) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(videoUrl);
+            showToast('Video URL copied to clipboard!', 'success');
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = videoUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showToast('Video URL copied to clipboard!', 'success');
+        }
+    } catch (error) {
+        console.error('Copy video URL failed:', error);
+        showToast('Copy failed - try downloading instead', 'error');
+    }
 }
 
 // Show error message
@@ -1059,6 +1573,15 @@ async function loadConversationHistory(conversationId) {
         if (data.success) {
             conversationHistory = data.history;
             
+            console.log('=== 会话历史加载成功 ===');
+            console.log('历史记录总数:', conversationHistory.length);
+            console.log('原始历史数据:', data.history);
+            
+            // 分析记录类型
+            const imageCount = conversationHistory.filter(item => item.type === 'image').length;
+            const videoCount = conversationHistory.filter(item => item.type === 'video').length;
+            console.log(`图片记录数: ${imageCount}, 视频记录数: ${videoCount}`);
+            
             // 显示历史图片
             displayConversationHistory();
             
@@ -1098,15 +1621,29 @@ function displayConversationHistory() {
             groupedHistory[groupKey] = {
                 prompt: prompt,
                 created_at: historyItem.created_at,
-                images: []
+                images: [],
+                videos: []
             };
         }
         
-        if (historyItem.image_base64) {
+        // 根据类型分类记录
+        if (historyItem.type === 'image' && historyItem.image_base64) {
+            console.log('处理图片记录:', historyItem.prompt.substring(0, 30) + '...');
             groupedHistory[groupKey].images.push({
                 base64: historyItem.image_base64,
                 url: historyItem.image_url || ''
             });
+        } else if ((historyItem.type === 'video' || historyItem.type === 'image_to_video') && historyItem.video_url) {
+            console.log('处理视频记录:', historyItem.type, historyItem.prompt.substring(0, 30) + '...', 'URL:', historyItem.video_url);
+            groupedHistory[groupKey].videos.push({
+                url: historyItem.video_url,
+                size: historyItem.size,
+                duration: historyItem.duration,
+                sourceImage: historyItem.image_base64 || null, // 如果是image_to_video，包含源图片
+                videoType: historyItem.type // 标记视频类型
+            });
+        } else {
+            console.log('跳过记录 - 类型:', historyItem.type, '有image_base64:', !!historyItem.image_base64, '有video_url:', !!historyItem.video_url);
         }
     });
     
@@ -1134,13 +1671,13 @@ function displayConversationHistory() {
             historyHeader.appendChild(promptTitle);
             historyGroup.appendChild(historyHeader);
             
-            // 创建图片容器
-            const historyImageContainer = document.createElement('div');
-            historyImageContainer.className = 'image-grid';
+            // 创建内容容器
+            const historyContentContainer = document.createElement('div');
+            historyContentContainer.className = 'image-grid';
             
-            console.log(`分组 ${index + 1} 包含 ${groupedItem.images.length} 张图片`);
+            console.log(`分组 ${index + 1} 包含 ${groupedItem.images.length} 张图片，${groupedItem.videos.length} 个视频`);
             
-            // 为每张图片创建展示元素
+            // 处理图片
             groupedItem.images.forEach((image, imgIndex) => {
                 const imageItem = document.createElement('div');
                 imageItem.className = 'image-item';
@@ -1178,10 +1715,53 @@ function displayConversationHistory() {
                     copyImageData(imageSrc);
                 });
                 
-                historyImageContainer.appendChild(imageItem);
+                historyContentContainer.appendChild(imageItem);
             });
             
-            historyGroup.appendChild(historyImageContainer);
+            // 处理视频
+            groupedItem.videos.forEach((video, videoIndex) => {
+                const videoItem = document.createElement('div');
+                videoItem.className = 'video-item';
+                videoItem.innerHTML = `
+                    <div class="video-container">
+                        <video controls>
+                            <source src="${video.url}" type="video/mp4">
+                            您的浏览器不支持视频播放。
+                        </video>
+                        <div class="video-info">
+                            <span class="video-resolution">${video.size || '未知分辨率'}</span>
+                            <span class="video-duration">${video.duration || 5}s</span>
+                        </div>
+                    </div>
+                    <div class="video-actions">
+                        <button class="action-btn download-video-btn" data-video-url="${video.url}" data-video-index="${videoIndex}">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn fullscreen-btn" data-video-url="${video.url}">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // 为下载按钮添加事件监听器
+                const downloadBtn = videoItem.querySelector('.download-video-btn');
+                downloadBtn.addEventListener('click', function() {
+                    const videoUrl = this.getAttribute('data-video-url');
+                    const videoIndex = parseInt(this.getAttribute('data-video-index'));
+                    downloadVideoData(videoUrl, videoIndex);
+                });
+                
+                // 为全屏按钮添加事件监听器
+                const fullscreenBtn = videoItem.querySelector('.fullscreen-btn');
+                fullscreenBtn.addEventListener('click', function() {
+                    const videoUrl = this.getAttribute('data-video-url');
+                    viewVideoFullSize(videoUrl);
+                });
+                
+                historyContentContainer.appendChild(videoItem);
+            });
+            
+            historyGroup.appendChild(historyContentContainer);
             currentImages.appendChild(historyGroup);
         });
 }
@@ -1549,10 +2129,10 @@ function initCompactControls() {
 } 
 
 // 创建图片生成占位符
-function createImagePlaceholder(prompt) {
-    // 创建新的图片组
-    const imageGroup = document.createElement('div');
-    imageGroup.className = 'image-group';
+function createContentPlaceholder(prompt, contentType = 'image') {
+    // 创建新的内容组
+    const contentGroup = document.createElement('div');
+    contentGroup.className = contentType === 'image' ? 'image-group' : 'video-group';
     
     // 添加提示词标题和删除按钮
     const promptTitle = document.createElement('div');
@@ -1567,13 +2147,14 @@ function createImagePlaceholder(prompt) {
     
     promptTitle.appendChild(promptText);
     promptTitle.appendChild(deleteBtn);
-    imageGroup.appendChild(promptTitle);
+    contentGroup.appendChild(promptTitle);
     
     // 为删除按钮添加事件监听器
     deleteBtn.addEventListener('click', function() {
-        if (confirm('Are you sure you want to delete this image group?')) {
-            imageGroup.remove();
-            // 如果没有更多图片组，显示占位符
+        const contentTypeName = contentType === 'image' ? 'image' : 'video';
+        if (confirm(`Are you sure you want to delete this ${contentTypeName} group?`)) {
+            contentGroup.remove();
+            // 如果没有更多内容组，显示占位符
             if (currentImages.children.length === 0) {
                 currentImages.style.display = 'none';
                 previewArea.style.display = 'flex';
@@ -1581,9 +2162,9 @@ function createImagePlaceholder(prompt) {
         }
     });
     
-    // 创建图片占位符
+    // 创建内容占位符
     const placeholder = document.createElement('div');
-    placeholder.className = 'image-placeholder generating';
+    placeholder.className = contentType === 'image' ? 'image-placeholder generating' : 'video-placeholder generating';
     
     const placeholderContent = document.createElement('div');
     placeholderContent.className = 'placeholder-content generating';
@@ -1593,28 +2174,36 @@ function createImagePlaceholder(prompt) {
     
     const text = document.createElement('div');
     text.className = 'placeholder-text';
-    text.textContent = 'Generating images...';
+    text.textContent = contentType === 'image' ? 'Generating images...' : 'Generating video...';
     
     const percentage = document.createElement('div');
     percentage.className = 'placeholder-percentage';
-    percentage.textContent = '0%';
+    
+    if (contentType === 'video') {
+        // 视频生成显示提示文本而不是百分比
+        percentage.textContent = 'Video generation takes longer, please wait patiently for 2-3 minutes';
+        percentage.className = 'placeholder-message'; // 使用不同的类名以便样式区分
+    } else {
+        // 图片生成显示百分比
+        percentage.textContent = '0%';
+    }
     
     placeholderContent.appendChild(spinner);
     placeholderContent.appendChild(text);
     placeholderContent.appendChild(percentage);
     placeholder.appendChild(placeholderContent);
     
-    imageGroup.appendChild(placeholder);
+    contentGroup.appendChild(placeholder);
     
     // 添加到容器顶部
-    currentImages.insertBefore(imageGroup, currentImages.firstChild);
+    currentImages.insertBefore(contentGroup, currentImages.firstChild);
     
     // 滚动到新创建的占位符
     setTimeout(() => {
-        imageGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        contentGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
     
-    return imageGroup;
+    return contentGroup;
 }
 
 // 填充生成的图片到占位符位置
@@ -1697,5 +2286,132 @@ function fillGeneratedImages(imageGroup, images) {
         setTimeout(async () => {
             await loadConversationHistory(currentConversationId);
         }, 500); // 延迟加载以确保后端已保存
+    }
+}
+
+// Fill generated videos to placeholder
+function fillGeneratedVideos(videoGroup, videos) {
+    console.log('=== fillGeneratedVideos 调用 ===');
+    console.log('传入的视频数组:', videos);
+    console.log('视频数量:', videos.length);
+    
+    // 移除占位符
+    const placeholder = videoGroup.querySelector('.video-placeholder, .image-placeholder');
+    if (placeholder) {
+        placeholder.remove();
+    }
+    
+    // 创建视频网格容器
+    const videoGrid = document.createElement('div');
+    videoGrid.className = 'video-grid';
+    
+    console.log('=== 生成视频HTML ===');
+    console.log('开始遍历视频数组，长度:', videos.length);
+    
+    videoGrid.innerHTML = videos.map((video, index) => {
+        console.log(`处理视频 ${index + 1}:`, {
+            index: index,
+            url: video.url,
+            task_id: video.task_id
+        });
+        
+        return `
+        <div class="video-item" data-video-index="${index}">
+            <video controls preload="metadata" data-video-src="${video.url}">
+                <source src="${video.url}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div class="video-actions">
+                <button class="action-btn download-btn" data-download-src="${video.url}" data-download-index="${index}">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="action-btn copy-btn" data-copy-src="${video.url}">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    }).join('');
+    
+    console.log('生成的HTML长度:', videoGrid.innerHTML.length);
+    console.log('视频网格子元素数量:', videoGrid.children.length);
+    
+    videoGroup.appendChild(videoGrid);
+    
+    // 为视频添加双击事件监听器（全屏播放）
+    const videoItems = videoGrid.querySelectorAll('.video-item video');
+    videoItems.forEach(video => {
+        video.addEventListener('dblclick', function() {
+            if (this.requestFullscreen) {
+                this.requestFullscreen();
+            } else if (this.webkitRequestFullscreen) {
+                this.webkitRequestFullscreen();
+            } else if (this.mozRequestFullScreen) {
+                this.mozRequestFullScreen();
+            }
+        });
+    });
+    
+    // 为下载按钮添加事件监听器
+    const downloadBtns = videoGrid.querySelectorAll('.download-btn');
+    downloadBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const videoSrc = this.getAttribute('data-download-src');
+            const videoIndex = parseInt(this.getAttribute('data-download-index'));
+            downloadVideoData(videoSrc, videoIndex);
+        });
+    });
+    
+    // 为复制按钮添加事件监听器
+    const copyBtns = videoGrid.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const videoSrc = this.getAttribute('data-copy-src');
+            copyVideoData(videoSrc);
+        });
+    });
+    
+    // 如果有当前会话，重新加载会话历史以包含新生成的视频
+    if (currentConversationId) {
+        setTimeout(async () => {
+            await loadConversationHistory(currentConversationId);
+        }, 500); // 延迟加载以确保后端已保存
+    }
+}
+
+// Download video data
+function downloadVideoData(videoUrl, index = 0) {
+    try {
+        const link = document.createElement('a');
+        link.href = videoUrl;
+        link.download = `generated_video_${index + 1}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Video download started!', 'success');
+    } catch (error) {
+        console.error('视频下载失败:', error);
+        showToast('Failed to download video', 'error');
+    }
+}
+
+// Copy video URL to clipboard
+function copyVideoData(videoUrl) {
+    try {
+        navigator.clipboard.writeText(videoUrl).then(() => {
+            showToast('Video URL copied to clipboard!', 'success');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = videoUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showToast('Video URL copied to clipboard!', 'success');
+        });
+    } catch (error) {
+        console.error('复制视频URL失败:', error);
+        showToast('Failed to copy video URL', 'error');
     }
 }
